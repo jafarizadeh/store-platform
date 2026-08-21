@@ -74,6 +74,11 @@ jobs:
       - name: Create backend virtual environment
         run: python -m venv backend/.venv
 
+      - name: Upgrade pip securely
+        run: |
+          backend/.venv/bin/python -m pip install --upgrade "pip==26.2.1"
+          backend/.venv/bin/python -m pip --version
+
       - name: Install backend dependencies
         run: |
           backend/.venv/bin/pip install \

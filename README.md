@@ -7,3 +7,5 @@ Modern e-commerce platform for electronics, Raspberry Pi products, kits, and gui
 - frontend — Web application
 - backend — API and business logic
 - infra — Infrastructure and deployment configuration
+
+Security gates smoke test.

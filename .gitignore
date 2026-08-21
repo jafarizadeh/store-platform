@@ -1,0 +1,55 @@
+# Node
+node_modules/
+.next/
+dist/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Testing / coverage
+coverage/
+.pytest_cache/
+
+# Editors
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*~
+backend/.env
+backend/.venv/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/**/__pycache__/
+backend/.coverage
+
+# Runtime state
+.run/
+
+# Application logs
+logs/**/*.log
+logs/**/*.jsonl
+logs/**/*.log.*
+
+# Local backup/snapshot files
+*.bak
+*.before-*

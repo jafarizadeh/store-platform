@@ -53,3 +53,9 @@ logs/**/*.log.*
 # Local backup/snapshot files
 *.bak
 *.before-*
+
+# Local backend test database credentials
+backend/.env.test
+
+# Keep test credentials private, but track the safe template
+!backend/.env.test.example

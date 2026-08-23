@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import (
     APIRouter,
     Depends,
+    Header,
     HTTPException,
     status,
 )
@@ -11,8 +12,12 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.auth import (
     require_authenticated_session,
 )
+from app.core.idempotency import (
+    is_valid_idempotency_key,
+)
 from app.db.session import get_db
 from app.domain.order_errors import (
+    IdempotencyConflictError,
     InsufficientStockError,
     MixedCurrencyError,
     OfferRequiresQuoteError,
@@ -46,6 +51,13 @@ Authenticated = Annotated[
     Depends(require_authenticated_session),
 ]
 
+IdempotencyHeader = Annotated[
+    str | None,
+    Header(
+        alias="Idempotency-Key",
+    ),
+]
+
 
 @router.get(
     "",
@@ -70,17 +82,35 @@ def create_order(
     request: OrderCreate,
     db: DatabaseSession,
     authenticated: Authenticated,
+    idempotency_key: IdempotencyHeader = None,
 ):
+    if not is_valid_idempotency_key(idempotency_key):
+        raise HTTPException(
+            status_code=(status.HTTP_422_UNPROCESSABLE_CONTENT),
+            detail={
+                "code": "invalid_idempotency_key",
+            },
+        )
+
     try:
         return create_pending_order(
             db,
             request,
-            user_id=authenticated.user.id,
+            user_id=(authenticated.user.id),
+            idempotency_key=(idempotency_key),
         )
+
+    except IdempotencyConflictError as exc:
+        raise HTTPException(
+            status_code=(status.HTTP_409_CONFLICT),
+            detail={
+                "code": "idempotency_conflict",
+            },
+        ) from exc
 
     except OfferUnavailableError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=(status.HTTP_409_CONFLICT),
             detail={
                 "code": "offer_unavailable",
                 "offer_id": exc.offer_id,
@@ -89,7 +119,7 @@ def create_order(
 
     except OfferRequiresQuoteError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=(status.HTTP_409_CONFLICT),
             detail={
                 "code": "quote_required",
                 "offer_id": exc.offer_id,
@@ -98,7 +128,7 @@ def create_order(
 
     except InsufficientStockError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=(status.HTTP_409_CONFLICT),
             detail={
                 "code": "insufficient_stock",
                 "offer_id": exc.offer_id,
@@ -109,7 +139,7 @@ def create_order(
 
     except OrderQuantityLimitError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=(status.HTTP_422_UNPROCESSABLE_CONTENT),
             detail={
                 "code": "quantity_limit_exceeded",
                 "offer_id": exc.offer_id,
@@ -120,7 +150,7 @@ def create_order(
 
     except MixedCurrencyError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=(status.HTTP_409_CONFLICT),
             detail={
                 "code": "mixed_currency",
             },

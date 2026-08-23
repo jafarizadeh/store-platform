@@ -438,6 +438,20 @@ function backendHeaders(
     }
   }
 
+  // Explicit application-header allowlist.
+  // Never forward arbitrary browser headers.
+  const idempotencyKey =
+    request.headers.get(
+      "idempotency-key",
+    );
+
+  if (idempotencyKey) {
+    headers.set(
+      "Idempotency-Key",
+      idempotencyKey,
+    );
+  }
+
   return headers;
 }
 

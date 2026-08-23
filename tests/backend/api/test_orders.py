@@ -12,6 +12,12 @@ def _credential() -> str:
     return "Strong-" + "order-api-test-credential-2026!"
 
 
+def _idempotency_headers(
+    key: str | None = None,
+) -> dict[str, str]:
+    return {"Idempotency-Key": (key or f"test-{uuid4().hex}")}
+
+
 def _authenticate(
     client: TestClient,
 ) -> dict[str, object]:
@@ -37,6 +43,7 @@ def test_create_order_api_requires_authentication(
 
     response = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [
                 {
@@ -78,6 +85,7 @@ def test_create_order_api_returns_server_calculated_total(
 
     response = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [
                 {
@@ -125,6 +133,7 @@ def test_order_history_returns_only_current_users_orders(
 
     created = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [
                 {
@@ -175,6 +184,7 @@ def test_create_order_api_rejects_unavailable_offer(
 
     response = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [
                 {
@@ -209,6 +219,7 @@ def test_create_order_api_rejects_insufficient_stock(
 
     response = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [
                 {
@@ -249,6 +260,7 @@ def test_create_order_api_rejects_quote_offer(
 
     response = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [
                 {
@@ -289,6 +301,7 @@ def test_create_order_api_rejects_mixed_currency(
 
     response = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [
                 {
@@ -317,6 +330,7 @@ def test_create_order_api_validates_payload(
 
     response = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [],
         },
@@ -341,6 +355,7 @@ def test_create_order_api_rejects_aggregate_quantity_over_limit(
 
     response = client.post(
         "/api/v1/orders",
+        headers=_idempotency_headers(),
         json={
             "items": [
                 {
@@ -367,3 +382,219 @@ def test_create_order_api_rejects_aggregate_quantity_over_limit(
     db_session.refresh(offer)
 
     assert offer.stock_quantity == 200
+
+
+def test_create_order_api_requires_idempotency_key(
+    client: TestClient,
+) -> None:
+    _authenticate(client)
+
+    response = client.post(
+        "/api/v1/orders",
+        json={
+            "items": [
+                {
+                    "offer_id": 999999,
+                    "quantity": 1,
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "code": "invalid_idempotency_key",
+    }
+
+
+def test_create_order_api_rejects_invalid_idempotency_key(
+    client: TestClient,
+) -> None:
+    _authenticate(client)
+
+    response = client.post(
+        "/api/v1/orders",
+        headers={
+            "Idempotency-Key": "invalid key",
+        },
+        json={
+            "items": [
+                {
+                    "offer_id": 999999,
+                    "quantity": 1,
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "code": "invalid_idempotency_key",
+    }
+
+
+def test_create_order_api_replays_same_key_without_consuming_inventory_twice(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    user = _authenticate(client)
+
+    _, offer = create_product_offer(
+        db_session,
+        slug="api-idempotent-replay",
+        price_cents=1200,
+        stock_quantity=5,
+    )
+
+    db_session.commit()
+
+    key = f"replay-{uuid4().hex}"
+
+    payload = {
+        "items": [
+            {
+                "offer_id": offer.id,
+                "quantity": 2,
+            }
+        ]
+    }
+
+    first = client.post(
+        "/api/v1/orders",
+        headers=_idempotency_headers(key),
+        json=payload,
+    )
+
+    second = client.post(
+        "/api/v1/orders",
+        headers=_idempotency_headers(key),
+        json=payload,
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+
+    assert second.json()["id"] == first.json()["id"]
+
+    db_session.refresh(offer)
+
+    assert offer.stock_quantity == 3
+
+    orders = list(
+        db_session.scalars(
+            select(Order).where(Order.user_id == UUID(str(user["id"])))
+        ).all()
+    )
+
+    assert len(orders) == 1
+
+
+def test_create_order_api_rejects_same_key_with_different_cart(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _authenticate(client)
+
+    _, offer = create_product_offer(
+        db_session,
+        slug="api-idempotent-conflict",
+        price_cents=900,
+        stock_quantity=10,
+    )
+
+    db_session.commit()
+
+    key = f"conflict-{uuid4().hex}"
+
+    first = client.post(
+        "/api/v1/orders",
+        headers=_idempotency_headers(key),
+        json={
+            "items": [
+                {
+                    "offer_id": offer.id,
+                    "quantity": 1,
+                }
+            ]
+        },
+    )
+
+    second = client.post(
+        "/api/v1/orders",
+        headers=_idempotency_headers(key),
+        json={
+            "items": [
+                {
+                    "offer_id": offer.id,
+                    "quantity": 2,
+                }
+            ]
+        },
+    )
+
+    assert first.status_code == 201
+
+    assert second.status_code == 409
+    assert second.json()["detail"] == {
+        "code": "idempotency_conflict",
+    }
+
+    db_session.refresh(offer)
+
+    assert offer.stock_quantity == 9
+
+
+def test_same_idempotency_key_is_independent_between_users(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _authenticate(client)
+
+    _, offer = create_product_offer(
+        db_session,
+        slug="api-idempotent-users",
+        price_cents=700,
+        stock_quantity=10,
+    )
+
+    db_session.commit()
+
+    key = f"shared-{uuid4().hex}"
+
+    first = client.post(
+        "/api/v1/orders",
+        headers=_idempotency_headers(key),
+        json={
+            "items": [
+                {
+                    "offer_id": offer.id,
+                    "quantity": 1,
+                }
+            ]
+        },
+    )
+
+    client.cookies.clear()
+    _authenticate(client)
+
+    second = client.post(
+        "/api/v1/orders",
+        headers=_idempotency_headers(key),
+        json={
+            "items": [
+                {
+                    "offer_id": offer.id,
+                    "quantity": 1,
+                }
+            ]
+        },
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+
+    assert first.json()["id"] != second.json()["id"]
+
+    db_session.refresh(offer)
+
+    assert offer.stock_quantity == 8

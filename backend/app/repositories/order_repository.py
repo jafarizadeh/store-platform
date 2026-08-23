@@ -11,12 +11,16 @@ def create_order(
     db: Session,
     *,
     user_id: UUID,
+    idempotency_key: str,
+    request_fingerprint: str,
     currency: str,
     total_cents: int,
     lines: list[OrderLineSnapshot],
 ) -> Order:
     order = Order(
         user_id=user_id,
+        idempotency_key=idempotency_key,
+        request_fingerprint=request_fingerprint,
         status="pending",
         currency=currency,
         total_cents=total_cents,
@@ -28,8 +32,8 @@ def create_order(
             product_name=line.product_name,
             offer_name=line.offer_name,
             sku=line.sku,
-            fulfillment_type=line.fulfillment_type,
-            unit_price_cents=line.unit_price_cents,
+            fulfillment_type=(line.fulfillment_type),
+            unit_price_cents=(line.unit_price_cents),
             quantity=line.quantity,
         )
         for line in lines
@@ -39,6 +43,24 @@ def create_order(
     db.flush()
 
     return order
+
+
+def get_order_by_idempotency_key(
+    db: Session,
+    *,
+    user_id: UUID,
+    idempotency_key: str,
+) -> Order | None:
+    statement = (
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(
+            Order.user_id == user_id,
+            Order.idempotency_key == idempotency_key,
+        )
+    )
+
+    return db.scalar(statement)
 
 
 def list_orders_for_user(

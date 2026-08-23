@@ -22,6 +22,13 @@ def get_user_by_id(
     return db.scalar(select(User).where(User.id == user_id))
 
 
+def get_user_by_id_for_update(
+    db: Session,
+    user_id: uuid.UUID,
+) -> User | None:
+    return db.scalar(select(User).where(User.id == user_id).with_for_update())
+
+
 def create_user(
     db: Session,
     *,

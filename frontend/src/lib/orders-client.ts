@@ -22,6 +22,17 @@ export type OrderCreateItem = {
   quantity: number;
 };
 
+type StoredIdempotencyState = {
+  signature: string;
+  key: string;
+};
+
+const IDEMPOTENCY_STORAGE_KEY =
+  "bynet-checkout-idempotency-v1";
+
+const IDEMPOTENCY_KEY_PATTERN =
+  /^[A-Za-z0-9._~-]{16,128}$/;
+
 export class OrdersRequestError extends Error {
   readonly status: number;
   readonly code: string;
@@ -80,13 +91,149 @@ async function requestError(
   try {
     payload = await response.json();
   } catch {
-    // Status remains authoritative.
+    // HTTP status remains authoritative.
   }
 
   return new OrdersRequestError(
     response.status,
     errorCode(payload),
   );
+}
+
+function itemSignature(
+  items: OrderCreateItem[],
+): string {
+  const quantities =
+    new Map<number, number>();
+
+  for (const item of items) {
+    quantities.set(
+      item.offer_id,
+      (
+        quantities.get(
+          item.offer_id,
+        ) ?? 0
+      ) + item.quantity,
+    );
+  }
+
+  return JSON.stringify(
+    Array.from(
+      quantities.entries(),
+    )
+      .sort(
+        ([left], [right]) =>
+          left - right,
+      )
+      .map(
+        ([offerId, quantity]) => ({
+          offer_id: offerId,
+          quantity,
+        }),
+      ),
+  );
+}
+
+function readStoredIdempotencyState():
+  StoredIdempotencyState | null {
+  try {
+    const raw =
+      window.sessionStorage.getItem(
+        IDEMPOTENCY_STORAGE_KEY,
+      );
+
+    if (!raw) {
+      return null;
+    }
+
+    const parsed: unknown =
+      JSON.parse(raw);
+
+    if (
+      typeof parsed !== "object" ||
+      parsed === null
+    ) {
+      return null;
+    }
+
+    const candidate =
+      parsed as Partial<
+        StoredIdempotencyState
+      >;
+
+    if (
+      typeof candidate.signature
+        !== "string" ||
+      typeof candidate.key
+        !== "string" ||
+      !IDEMPOTENCY_KEY_PATTERN.test(
+        candidate.key,
+      )
+    ) {
+      return null;
+    }
+
+    return {
+      signature:
+        candidate.signature,
+      key: candidate.key,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function idempotencyKeyFor(
+  items: OrderCreateItem[],
+): string {
+  const signature =
+    itemSignature(items);
+
+  const stored =
+    readStoredIdempotencyState();
+
+  if (
+    stored?.signature === signature
+  ) {
+    return stored.key;
+  }
+
+  const key =
+    crypto.randomUUID();
+
+  try {
+    window.sessionStorage.setItem(
+      IDEMPOTENCY_STORAGE_KEY,
+      JSON.stringify({
+        signature,
+        key,
+      }),
+    );
+  } catch {
+    // The request remains safe for this
+    // attempt even if storage is disabled.
+  }
+
+  return key;
+}
+
+function clearIdempotencyKey(
+  key: string,
+): void {
+  const stored =
+    readStoredIdempotencyState();
+
+  if (stored?.key !== key) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(
+      IDEMPOTENCY_STORAGE_KEY,
+    );
+  } catch {
+    // Nothing else is required.
+  }
 }
 
 export async function fetchOrders(): Promise<
@@ -110,7 +257,8 @@ export async function fetchOrders(): Promise<
     );
   }
 
-  const payload = await response.json();
+  const payload =
+    await response.json();
 
   return payload as CustomerOrder[];
 }
@@ -118,6 +266,9 @@ export async function fetchOrders(): Promise<
 export async function createOrder(
   items: OrderCreateItem[],
 ): Promise<CustomerOrder> {
+  const idempotencyKey =
+    idempotencyKeyFor(items);
+
   const response = await fetch(
     "/api/orders",
     {
@@ -128,6 +279,8 @@ export async function createOrder(
         Accept: "application/json",
         "Content-Type":
           "application/json",
+        "Idempotency-Key":
+          idempotencyKey,
       },
       body: JSON.stringify({
         items,
@@ -136,12 +289,29 @@ export async function createOrder(
   );
 
   if (!response.ok) {
-    throw await requestError(
-      response,
-    );
+    const error =
+      await requestError(
+        response,
+      );
+
+    if (
+      error.code ===
+      "idempotency_conflict"
+    ) {
+      clearIdempotencyKey(
+        idempotencyKey,
+      );
+    }
+
+    throw error;
   }
 
-  const payload = await response.json();
+  const payload =
+    await response.json();
+
+  clearIdempotencyKey(
+    idempotencyKey,
+  );
 
   return payload as CustomerOrder;
 }
@@ -160,7 +330,9 @@ export function orderErrorMessage(
 
   switch (error.code) {
     case "not_authenticated":
-      return "Please sign in to continue.";
+      return (
+        "Please sign in to continue."
+      );
 
     case "offer_unavailable":
       return (
@@ -190,6 +362,18 @@ export function orderErrorMessage(
       return (
         "The maximum order quantity "
         + "for one item is 100."
+      );
+
+    case "invalid_idempotency_key":
+      return (
+        "The checkout request could not "
+        + "be validated. Refresh and retry."
+      );
+
+    case "idempotency_conflict":
+      return (
+        "This checkout attempt changed "
+        + "unexpectedly. Please retry."
       );
 
     case "rate_limited":

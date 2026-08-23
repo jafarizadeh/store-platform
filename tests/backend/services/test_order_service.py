@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from factories.catalog import create_product_offer
@@ -22,6 +22,10 @@ from app.services.order_service import (
 )
 
 TEST_CREDENTIAL_HASH = hash_password("order-" + "service-test-credential")
+
+
+def _idempotency_key() -> str:
+    return f"service-{uuid4().hex}"
 
 
 def _create_user(
@@ -83,6 +87,7 @@ def test_create_pending_order_uses_server_offer_prices(
             ]
         ),
         user_id=user_id,
+        idempotency_key=_idempotency_key(),
     )
 
     assert order.user_id == user_id
@@ -126,6 +131,7 @@ def test_create_pending_order_aggregates_duplicate_offers(
             ]
         ),
         user_id=user_id,
+        idempotency_key=_idempotency_key(),
     )
 
     assert len(order.items) == 1
@@ -165,6 +171,7 @@ def test_create_pending_order_snapshots_catalog_data(
             ]
         ),
         user_id=user_id,
+        idempotency_key=_idempotency_key(),
     )
 
     item = order.items[0]
@@ -218,6 +225,7 @@ def test_mixed_currency_rolls_back_inventory(
             db_session,
             request,
             user_id=user_id,
+            idempotency_key=_idempotency_key(),
         )
 
     db_session.expire_all()
@@ -271,6 +279,7 @@ def test_insufficient_stock_does_not_create_order(
                 ]
             ),
             user_id=user_id,
+            idempotency_key=_idempotency_key(),
         )
 
     matching_order_ids = set(
@@ -314,6 +323,7 @@ def test_aggregate_quantity_limit_is_enforced_before_inventory(
                 ]
             ),
             user_id=user_id,
+            idempotency_key=_idempotency_key(),
         )
 
     assert exc_info.value.offer_id == offer.id

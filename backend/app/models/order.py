@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    UniqueConstraint,
     Uuid,
     func,
 )
@@ -33,6 +34,11 @@ class Order(Base):
             "total_cents >= 0",
             name="ck_orders_total_nonnegative",
         ),
+        UniqueConstraint(
+            "user_id",
+            "idempotency_key",
+            name="uq_orders_user_id_idempotency_key",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -49,6 +55,16 @@ class Order(Base):
         ),
         nullable=True,
         index=True,
+    )
+
+    idempotency_key: Mapped[str | None] = mapped_column(
+        String(128),
+        nullable=True,
+    )
+
+    request_fingerprint: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
     )
 
     status: Mapped[str] = mapped_column(

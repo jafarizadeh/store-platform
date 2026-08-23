@@ -8,6 +8,7 @@ class OfferUnavailableError(OrderDomainError):
         offer_id: int,
     ) -> None:
         self.offer_id = offer_id
+
         super().__init__(f"Offer {offer_id} is unavailable.")
 
 
@@ -17,6 +18,7 @@ class OfferRequiresQuoteError(OrderDomainError):
         offer_id: int,
     ) -> None:
         self.offer_id = offer_id
+
         super().__init__(f"Offer {offer_id} requires a quote.")
 
 
@@ -36,10 +38,10 @@ class InsufficientStockError(OrderDomainError):
 
 
 class MixedCurrencyError(OrderDomainError):
-    """Raised when an order contains fixed-price offers in different currencies."""
+    """Raised for fixed-price offers with mixed currencies."""
 
 
-class OrderQuantityLimitError(Exception):
+class OrderQuantityLimitError(OrderDomainError):
     def __init__(
         self,
         offer_id: int,
@@ -51,3 +53,7 @@ class OrderQuantityLimitError(Exception):
         self.max_quantity = max_quantity
 
         super().__init__("Order quantity limit exceeded.")
+
+
+class IdempotencyConflictError(OrderDomainError):
+    """Raised when one key is reused for a different order request."""

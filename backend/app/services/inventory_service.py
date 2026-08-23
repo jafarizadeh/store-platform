@@ -2,45 +2,55 @@ from sqlalchemy.orm import Session
 
 from app.domain.order_errors import (
     InsufficientStockError,
-    ProductUnavailableError,
+    OfferRequiresQuoteError,
+    OfferUnavailableError,
 )
-from app.models.product import Product
-from app.repositories.product_repository import (
-    get_active_products_for_update,
+from app.models.product_offer import ProductOffer
+from app.repositories.offer_repository import (
+    get_active_offers_for_update,
 )
 
 
 def reserve_inventory(
     db: Session,
     requested_quantities: dict[int, int],
-) -> dict[int, Product]:
+) -> dict[int, ProductOffer]:
     if not requested_quantities:
         return {}
 
-    products = get_active_products_for_update(
+    offers = get_active_offers_for_update(
         db,
         set(requested_quantities),
     )
 
-    for product_id in sorted(requested_quantities):
-        product = products.get(product_id)
+    # Validate every line before mutating any inventory.
+    for offer_id in sorted(requested_quantities):
+        offer = offers.get(offer_id)
 
-        if product is None:
-            raise ProductUnavailableError(product_id)
+        if offer is None:
+            raise OfferUnavailableError(offer_id)
 
-        requested_quantity = requested_quantities[product_id]
+        if (
+            offer.pricing_type != "fixed"
+            or offer.price_cents is None
+            or offer.currency is None
+        ):
+            raise OfferRequiresQuoteError(offer_id)
 
-        if product.stock_quantity < requested_quantity:
+        requested_quantity = requested_quantities[offer_id]
+
+        if offer.track_inventory and offer.stock_quantity < requested_quantity:
             raise InsufficientStockError(
-                product_id=product_id,
+                offer_id=offer_id,
                 requested_quantity=requested_quantity,
-                available_quantity=product.stock_quantity,
+                available_quantity=offer.stock_quantity,
             )
 
-    # Only mutate stock after every requested product has passed
-    # validation. The surrounding order transaction will commit
-    # or roll back the reservation atomically.
-    for product_id, requested_quantity in requested_quantities.items():
-        products[product_id].stock_quantity -= requested_quantity
+    # Only inventory-tracked offers consume stock.
+    for offer_id, requested_quantity in requested_quantities.items():
+        offer = offers[offer_id]
 
-    return products
+        if offer.track_inventory:
+            offer.stock_quantity -= requested_quantity
+
+    return offers

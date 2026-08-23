@@ -19,8 +19,11 @@ def create_order(
 
     order.items = [
         OrderItem(
-            product_id=line.product_id,
+            offer_id=line.offer_id,
             product_name=line.product_name,
+            offer_name=line.offer_name,
+            sku=line.sku,
+            fulfillment_type=line.fulfillment_type,
             unit_price_cents=line.unit_price_cents,
             quantity=line.quantity,
         )

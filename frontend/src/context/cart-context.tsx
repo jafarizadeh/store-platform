@@ -10,58 +10,163 @@ import {
 } from "react";
 
 export type CartProduct = {
-  slug: string;
-  name: string;
-  price: number;
+  offerId: number;
+  productSlug: string;
+  productName: string;
+  offerName: string;
+  sku: string;
+  priceCents: number;
+  currency: string;
   image: string;
+  fulfillmentType:
+    | "physical"
+    | "digital"
+    | "service";
+  maxQuantity: number | null;
 };
 
-export type CartItem = CartProduct & {
-  quantity: number;
-};
+export type CartItem =
+  CartProduct & {
+    quantity: number;
+  };
+
+export type CartAddIssue =
+  | "currency-mismatch"
+  | "quantity-limit"
+  | null;
 
 type CartContextType = {
   items: CartItem[];
   totalItems: number;
-  totalPrice: number;
-  addItem: (product: CartProduct) => void;
-  decreaseItem: (slug: string) => void;
-  removeItem: (slug: string) => void;
+  totalPriceCents: number;
+  currency: string | null;
+  canAddItem: (
+    product: CartProduct,
+  ) => CartAddIssue;
+  addItem: (
+    product: CartProduct,
+  ) => void;
+  decreaseItem: (
+    offerId: number,
+  ) => void;
+  removeItem: (
+    offerId: number,
+  ) => void;
   clearCart: () => void;
 };
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+const CartContext =
+  createContext<
+    CartContextType | undefined
+  >(undefined);
 
-const emptySubscribe = () => () => {};
+const emptySubscribe =
+  () => () => {};
+
+function isCartItem(
+  value: unknown,
+): value is CartItem {
+  if (
+    typeof value !== "object" ||
+    value === null
+  ) {
+    return false;
+  }
+
+  const item =
+    value as Partial<CartItem>;
+
+  return (
+    Number.isInteger(
+      item.offerId,
+    ) &&
+    typeof item.productSlug ===
+      "string" &&
+    typeof item.productName ===
+      "string" &&
+    typeof item.offerName ===
+      "string" &&
+    typeof item.sku === "string" &&
+    Number.isInteger(
+      item.priceCents,
+    ) &&
+    (item.priceCents ?? -1) >= 0 &&
+    typeof item.currency ===
+      "string" &&
+    typeof item.image === "string" &&
+    (
+      item.fulfillmentType ===
+        "physical" ||
+      item.fulfillmentType ===
+        "digital" ||
+      item.fulfillmentType ===
+        "service"
+    ) &&
+    (
+      item.maxQuantity === null ||
+      (
+        Number.isInteger(
+          item.maxQuantity,
+        ) &&
+        (item.maxQuantity ?? -1) >=
+          0
+      )
+    ) &&
+    Number.isInteger(
+      item.quantity,
+    ) &&
+    (item.quantity ?? 0) > 0
+  );
+}
 
 function getStoredCart(): CartItem[] {
-  if (typeof window === "undefined") {
+  if (
+    typeof window === "undefined"
+  ) {
     return [];
   }
 
-  const saved = window.localStorage.getItem("bynet-cart");
+  const saved =
+    window.localStorage.getItem(
+      "bynet-cart-v2",
+    );
 
   if (!saved) {
     return [];
   }
 
   try {
-    const parsed = JSON.parse(saved);
+    const parsed: unknown =
+      JSON.parse(saved);
 
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(
+      isCartItem,
+    );
   } catch {
     return [];
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(getStoredCart);
+export function CartProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [items, setItems] =
+    useState<CartItem[]>(
+      getStoredCart,
+    );
 
-  const hydrated = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
+  const hydrated =
+    useSyncExternalStore(
+      emptySubscribe,
+      () => true,
+      () => false,
+    );
 
   useEffect(() => {
     if (!hydrated) {
@@ -69,25 +174,90 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     window.localStorage.setItem(
-      "bynet-cart",
-      JSON.stringify(items)
+      "bynet-cart-v2",
+      JSON.stringify(items),
     );
   }, [items, hydrated]);
 
-  function addItem(product: CartProduct) {
-    setItems((current) => {
-      const existing = current.find(
-        (item) => item.slug === product.slug
+  const visibleItems =
+    hydrated ? items : [];
+
+  const currency =
+    visibleItems[0]?.currency ??
+    null;
+
+  function canAddItem(
+    product: CartProduct,
+  ): CartAddIssue {
+    const existingCurrency =
+      visibleItems[0]?.currency;
+
+    if (
+      existingCurrency &&
+      existingCurrency !==
+        product.currency
+    ) {
+      return "currency-mismatch";
+    }
+
+    const existing =
+      visibleItems.find(
+        (item) =>
+          item.offerId ===
+          product.offerId,
       );
 
+    if (
+      existing &&
+      product.maxQuantity !==
+        null &&
+      existing.quantity >=
+        product.maxQuantity
+    ) {
+      return "quantity-limit";
+    }
+
+    if (
+      !existing &&
+      product.maxQuantity !==
+        null &&
+      product.maxQuantity <= 0
+    ) {
+      return "quantity-limit";
+    }
+
+    return null;
+  }
+
+  function addItem(
+    product: CartProduct,
+  ) {
+    if (
+      canAddItem(product) !== null
+    ) {
+      return;
+    }
+
+    setItems((current) => {
+      const existing =
+        current.find(
+          (item) =>
+            item.offerId ===
+            product.offerId,
+        );
+
       if (existing) {
-        return current.map((item) =>
-          item.slug === product.slug
-            ? {
-                ...item,
-                quantity: item.quantity + 1,
-              }
-            : item
+        return current.map(
+          (item) =>
+            item.offerId ===
+            product.offerId
+              ? {
+                  ...item,
+                  quantity:
+                    item.quantity +
+                    1,
+                }
+              : item,
         );
       }
 
@@ -101,24 +271,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  function decreaseItem(slug: string) {
+  function decreaseItem(
+    offerId: number,
+  ) {
     setItems((current) =>
       current
         .map((item) =>
-          item.slug === slug
+          item.offerId === offerId
             ? {
                 ...item,
-                quantity: item.quantity - 1,
+                quantity:
+                  item.quantity - 1,
               }
-            : item
+            : item,
         )
-        .filter((item) => item.quantity > 0)
+        .filter(
+          (item) =>
+            item.quantity > 0,
+        ),
     );
   }
 
-  function removeItem(slug: string) {
+  function removeItem(
+    offerId: number,
+  ) {
     setItems((current) =>
-      current.filter((item) => item.slug !== slug)
+      current.filter(
+        (item) =>
+          item.offerId !== offerId,
+      ),
     );
   }
 
@@ -126,25 +307,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
   }
 
-  const visibleItems = hydrated ? items : [];
+  const totalItems =
+    visibleItems.reduce(
+      (total, item) =>
+        total + item.quantity,
+      0,
+    );
 
-  const totalItems = visibleItems.reduce(
-    (total, item) => total + item.quantity,
-    0
-  );
-
-  const totalPrice = visibleItems.reduce(
-    (total, item) =>
-      total + item.price * item.quantity,
-    0
-  );
+  const totalPriceCents =
+    visibleItems.reduce(
+      (total, item) =>
+        total +
+        item.priceCents *
+          item.quantity,
+      0,
+    );
 
   return (
     <CartContext.Provider
       value={{
         items: visibleItems,
         totalItems,
-        totalPrice,
+        totalPriceCents,
+        currency,
+        canAddItem,
         addItem,
         decreaseItem,
         removeItem,
@@ -157,11 +343,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 }
 
 export function useCart() {
-  const context = useContext(CartContext);
+  const context =
+    useContext(CartContext);
 
   if (!context) {
     throw new Error(
-      "useCart must be used inside CartProvider"
+      "useCart must be used inside CartProvider",
     );
   }
 

@@ -21,21 +21,21 @@ export default function SiteHeader() {
           </Link>
 
           <Link
-            href="/#categories"
+            href="/shop?category=Kits%20%26%20Robotics"
             className="transition hover:text-neutral-500"
           >
             Kits
           </Link>
 
           <Link
-            href="/#categories"
+            href="/projects"
             className="transition hover:text-neutral-500"
           >
             Projects
           </Link>
 
           <Link
-            href="/#categories"
+            href="/projects"
             className="transition hover:text-neutral-500"
           >
             Solutions

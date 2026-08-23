@@ -7,7 +7,8 @@ from app.db.session import get_db
 from app.domain.order_errors import (
     InsufficientStockError,
     MixedCurrencyError,
-    ProductUnavailableError,
+    OfferRequiresQuoteError,
+    OfferUnavailableError,
 )
 from app.schemas.order import OrderCreate, OrderResponse
 from app.services.order_service import create_pending_order
@@ -33,17 +34,26 @@ def create_order(
     db: DatabaseSession,
 ):
     try:
-        order = create_pending_order(
+        return create_pending_order(
             db,
             request,
         )
 
-    except ProductUnavailableError as exc:
+    except OfferUnavailableError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
-                "code": "product_unavailable",
-                "product_id": exc.product_id,
+                "code": "offer_unavailable",
+                "offer_id": exc.offer_id,
+            },
+        ) from exc
+
+    except OfferRequiresQuoteError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "quote_required",
+                "offer_id": exc.offer_id,
             },
         ) from exc
 
@@ -52,7 +62,7 @@ def create_order(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "code": "insufficient_stock",
-                "product_id": exc.product_id,
+                "offer_id": exc.offer_id,
                 "requested_quantity": (exc.requested_quantity),
                 "available_quantity": (exc.available_quantity),
             },
@@ -65,5 +75,3 @@ def create_order(
                 "code": "mixed_currency",
             },
         ) from exc
-
-    return order

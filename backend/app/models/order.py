@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -13,6 +16,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.product_offer import ProductOffer
 
 
 class Order(Base):
@@ -70,7 +76,7 @@ class Order(Base):
         onupdate=func.now(),
     )
 
-    items: Mapped[list["OrderItem"]] = relationship(
+    items: Mapped[list[OrderItem]] = relationship(
         back_populates="order",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -107,10 +113,10 @@ class OrderItem(Base):
         index=True,
     )
 
-    product_id: Mapped[int] = mapped_column(
+    offer_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey(
-            "products.id",
+            "product_offers.id",
             ondelete="RESTRICT",
         ),
         nullable=False,
@@ -119,6 +125,21 @@ class OrderItem(Base):
 
     product_name: Mapped[str] = mapped_column(
         String(200),
+        nullable=False,
+    )
+
+    offer_name: Mapped[str] = mapped_column(
+        String(160),
+        nullable=False,
+    )
+
+    sku: Mapped[str] = mapped_column(
+        String(120),
+        nullable=False,
+    )
+
+    fulfillment_type: Mapped[str] = mapped_column(
+        String(20),
         nullable=False,
     )
 
@@ -132,6 +153,8 @@ class OrderItem(Base):
         nullable=False,
     )
 
-    order: Mapped["Order"] = relationship(
+    order: Mapped[Order] = relationship(
         back_populates="items",
     )
+
+    offer: Mapped[ProductOffer] = relationship()

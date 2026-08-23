@@ -59,3 +59,9 @@ backend/.env.test
 
 # Keep test credentials private, but track the safe template
 !backend/.env.test.example
+
+# Local raw product asset staging
+/import/
+/backups/
+/backend/data/catalog-offers.csv
+/backend/data/catalog-offers-before-*.csv

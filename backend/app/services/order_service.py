@@ -16,7 +16,7 @@ def _aggregate_quantities(
     quantities: dict[int, int] = defaultdict(int)
 
     for item in request.items:
-        quantities[item.product_id] += item.quantity
+        quantities[item.offer_id] += item.quantity
 
     return dict(quantities)
 
@@ -28,27 +28,40 @@ def create_pending_order(
     requested_quantities = _aggregate_quantities(request)
 
     with db.begin():
-        products = reserve_inventory(
+        offers = reserve_inventory(
             db,
             requested_quantities,
         )
 
-        currencies = {product.currency for product in products.values()}
+        currencies = {offer.currency for offer in offers.values()}
 
         if len(currencies) != 1:
             raise MixedCurrencyError
 
         currency = currencies.pop()
 
-        lines = [
-            OrderLineSnapshot(
-                product_id=product_id,
-                product_name=products[product_id].name,
-                unit_price_cents=products[product_id].price_cents,
-                quantity=quantity,
+        if currency is None:
+            raise RuntimeError("Validated fixed-price offer has no currency.")
+
+        lines: list[OrderLineSnapshot] = []
+
+        for offer_id, quantity in sorted(requested_quantities.items()):
+            offer = offers[offer_id]
+
+            if offer.price_cents is None:
+                raise RuntimeError("Validated fixed-price offer has no price.")
+
+            lines.append(
+                OrderLineSnapshot(
+                    offer_id=offer.id,
+                    product_name=offer.product.name,
+                    offer_name=offer.name,
+                    sku=offer.sku,
+                    fulfillment_type=(offer.fulfillment_type),
+                    unit_price_cents=(offer.price_cents),
+                    quantity=quantity,
+                )
             )
-            for product_id, quantity in sorted(requested_quantities.items())
-        ]
 
         total_cents = sum(line.unit_price_cents * line.quantity for line in lines)
 

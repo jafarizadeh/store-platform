@@ -1,46 +1,24 @@
+from factories.catalog import create_product_offer
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-
-from app.models.product import Product
-
-
-def _product(
-    *,
-    slug: str,
-    price_cents: int,
-    stock_quantity: int,
-    currency: str = "EUR",
-    is_active: bool = True,
-) -> Product:
-    return Product(
-        slug=slug,
-        name=slug,
-        description=None,
-        category="Testing",
-        image_path=None,
-        price_cents=price_cents,
-        currency=currency,
-        stock_quantity=stock_quantity,
-        is_active=is_active,
-    )
 
 
 def test_create_order_api_returns_server_calculated_total(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    first = _product(
+    _, first = create_product_offer(
+        db_session,
         slug="api-order-first",
         price_cents=1500,
-        stock_quantity=10,
-    )
-    second = _product(
-        slug="api-order-second",
-        price_cents=250,
-        stock_quantity=10,
     )
 
-    db_session.add_all([first, second])
+    _, second = create_product_offer(
+        db_session,
+        slug="api-order-second",
+        price_cents=250,
+    )
+
     db_session.commit()
 
     response = client.post(
@@ -48,14 +26,14 @@ def test_create_order_api_returns_server_calculated_total(
         json={
             "items": [
                 {
-                    "product_id": first.id,
+                    "offer_id": first.id,
                     "quantity": 2,
                 },
                 {
-                    "product_id": second.id,
+                    "offer_id": second.id,
                     "quantity": 4,
                 },
-            ],
+            ]
         },
     )
 
@@ -69,7 +47,7 @@ def test_create_order_api_returns_server_calculated_total(
     assert len(payload["items"]) == 2
 
 
-def test_create_order_api_rejects_unavailable_product(
+def test_create_order_api_rejects_unavailable_offer(
     client: TestClient,
 ) -> None:
     response = client.post(
@@ -77,18 +55,17 @@ def test_create_order_api_rejects_unavailable_product(
         json={
             "items": [
                 {
-                    "product_id": 999999,
+                    "offer_id": 999999,
                     "quantity": 1,
                 }
-            ],
+            ]
         },
     )
 
     assert response.status_code == 409
-
     assert response.json()["detail"] == {
-        "code": "product_unavailable",
-        "product_id": 999999,
+        "code": "offer_unavailable",
+        "offer_id": 999999,
     }
 
 
@@ -96,13 +73,12 @@ def test_create_order_api_rejects_insufficient_stock(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    product = _product(
+    _, offer = create_product_offer(
+        db_session,
         slug="api-order-stock",
-        price_cents=1000,
         stock_quantity=1,
     )
 
-    db_session.add(product)
     db_session.commit()
 
     response = client.post(
@@ -110,10 +86,10 @@ def test_create_order_api_rejects_insufficient_stock(
         json={
             "items": [
                 {
-                    "product_id": product.id,
+                    "offer_id": offer.id,
                     "quantity": 2,
                 }
-            ],
+            ]
         },
     )
 
@@ -121,35 +97,26 @@ def test_create_order_api_rejects_insufficient_stock(
 
     assert response.json()["detail"] == {
         "code": "insufficient_stock",
-        "product_id": product.id,
+        "offer_id": offer.id,
         "requested_quantity": 2,
         "available_quantity": 1,
     }
 
 
-def test_create_order_api_rejects_mixed_currency(
+def test_create_order_api_rejects_quote_offer(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    eur_product = _product(
-        slug="api-order-eur",
-        price_cents=1000,
-        stock_quantity=5,
-        currency="EUR",
-    )
-    usd_product = _product(
-        slug="api-order-usd",
-        price_cents=1000,
-        stock_quantity=5,
-        currency="USD",
+    _, offer = create_product_offer(
+        db_session,
+        slug="api-order-quote",
+        pricing_type="quote",
+        fulfillment_type="service",
+        price_cents=None,
+        currency=None,
+        track_inventory=False,
     )
 
-    db_session.add_all(
-        [
-            eur_product,
-            usd_product,
-        ]
-    )
     db_session.commit()
 
     response = client.post(
@@ -157,14 +124,51 @@ def test_create_order_api_rejects_mixed_currency(
         json={
             "items": [
                 {
-                    "product_id": eur_product.id,
+                    "offer_id": offer.id,
+                    "quantity": 1,
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "quote_required",
+        "offer_id": offer.id,
+    }
+
+
+def test_create_order_api_rejects_mixed_currency(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, eur_offer = create_product_offer(
+        db_session,
+        slug="api-order-eur",
+        currency="EUR",
+    )
+
+    _, usd_offer = create_product_offer(
+        db_session,
+        slug="api-order-usd",
+        currency="USD",
+    )
+
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/orders",
+        json={
+            "items": [
+                {
+                    "offer_id": eur_offer.id,
                     "quantity": 1,
                 },
                 {
-                    "product_id": usd_product.id,
+                    "offer_id": usd_offer.id,
                     "quantity": 1,
                 },
-            ],
+            ]
         },
     )
 
@@ -179,9 +183,7 @@ def test_create_order_api_validates_payload(
 ) -> None:
     response = client.post(
         "/api/v1/orders",
-        json={
-            "items": [],
-        },
+        json={"items": []},
     )
 
     assert response.status_code == 422

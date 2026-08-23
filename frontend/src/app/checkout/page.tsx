@@ -5,9 +5,17 @@ import Link from "next/link";
 
 import SiteHeader from "@/components/site-header";
 import { useCart } from "@/context/cart-context";
+import { formatMoney } from "@/lib/catalog";
 
 export default function CheckoutPage() {
-  const { items, totalItems, totalPrice } = useCart();
+  const {
+    items,
+    totalItems,
+    totalPriceCents,
+    currency,
+  } = useCart();
+
+  const displayCurrency = currency ?? "EUR";
 
   if (items.length === 0) {
     return (
@@ -223,13 +231,13 @@ export default function CheckoutPage() {
             <div className="mt-7 divide-y divide-neutral-800 border-y border-neutral-800">
               {items.map((item) => (
                 <div
-                  key={item.slug}
+                  key={item.offerId}
                   className="flex gap-4 py-5"
                 >
                   <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white">
                     <Image
                       src={item.image}
-                      alt={item.name}
+                      alt={item.productName}
                       fill
                       sizes="80px"
                       className="object-contain p-2 mix-blend-multiply"
@@ -238,7 +246,11 @@ export default function CheckoutPage() {
 
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">
-                      {item.name}
+                      {item.productName}
+                    </p>
+
+                    <p className="mt-1 text-sm text-neutral-400">
+                      {item.offerName} · {item.sku}
                     </p>
 
                     <p className="mt-1 text-sm text-neutral-400">
@@ -247,7 +259,10 @@ export default function CheckoutPage() {
                   </div>
 
                   <p className="whitespace-nowrap font-medium">
-                    €{(item.price * item.quantity).toFixed(2)}
+                    {formatMoney(
+                      item.priceCents * item.quantity,
+                      item.currency,
+                    )}
                   </p>
                 </div>
               ))}
@@ -267,7 +282,12 @@ export default function CheckoutPage() {
                   Subtotal
                 </span>
 
-                <span>€{totalPrice.toFixed(2)}</span>
+                <span>
+                  {formatMoney(
+                    totalPriceCents,
+                    displayCurrency,
+                  )}
+                </span>
               </div>
 
               <div className="flex justify-between">
@@ -285,7 +305,10 @@ export default function CheckoutPage() {
               </span>
 
               <span className="text-2xl font-semibold">
-                €{totalPrice.toFixed(2)}
+                {formatMoney(
+                  totalPriceCents,
+                  displayCurrency,
+                )}
               </span>
             </div>
 

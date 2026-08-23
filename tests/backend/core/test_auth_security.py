@@ -4,6 +4,7 @@ from app.core.auth_security import (
     hash_session_token,
     normalize_email,
     password_needs_rehash,
+    verify_login_password,
     verify_password,
 )
 
@@ -63,3 +64,12 @@ def test_session_hash_is_deterministic() -> None:
 
 def test_email_normalization() -> None:
     assert normalize_email("  Test.User@Example.COM ") == "test.user@example.com"
+
+
+def test_login_verification_rejects_missing_user() -> None:
+    candidate = "nonexistent-user-credential"
+
+    assert not verify_login_password(
+        None,
+        candidate,
+    )

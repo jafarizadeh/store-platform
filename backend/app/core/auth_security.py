@@ -22,6 +22,8 @@ _password_hasher = PasswordHasher(
     type=Type.ID,
 )
 
+_dummy_password_hash = _password_hasher.hash(secrets.token_urlsafe(32))
+
 
 def hash_password(
     password: str,
@@ -46,6 +48,22 @@ def verify_password(
         InvalidHashError,
     ):
         return False
+
+
+def verify_login_password(
+    password_hash: str | None,
+    plaintext: str,
+) -> bool:
+    candidate_hash = (
+        password_hash if password_hash is not None else _dummy_password_hash
+    )
+
+    verified = verify_password(
+        candidate_hash,
+        plaintext,
+    )
+
+    return password_hash is not None and verified
 
 
 def password_needs_rehash(

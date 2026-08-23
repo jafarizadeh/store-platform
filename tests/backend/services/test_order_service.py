@@ -9,6 +9,7 @@ from app.core.auth_security import hash_password
 from app.domain.order_errors import (
     InsufficientStockError,
     MixedCurrencyError,
+    OrderQuantityLimitError,
 )
 from app.models.order import Order, OrderItem
 from app.models.user import User
@@ -279,3 +280,50 @@ def test_insufficient_stock_does_not_create_order(
     )
 
     assert matching_order_ids == set()
+
+
+def test_aggregate_quantity_limit_is_enforced_before_inventory(
+    db_session: Session,
+) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-limit@example.com",
+    )
+
+    _, offer = create_product_offer(
+        db_session,
+        slug="order-limit",
+        stock_quantity=200,
+    )
+
+    db_session.commit()
+
+    with pytest.raises(OrderQuantityLimitError) as exc_info:
+        create_pending_order(
+            db_session,
+            OrderCreate(
+                items=[
+                    OrderItemCreate(
+                        offer_id=offer.id,
+                        quantity=60,
+                    ),
+                    OrderItemCreate(
+                        offer_id=offer.id,
+                        quantity=50,
+                    ),
+                ]
+            ),
+            user_id=user_id,
+        )
+
+    assert exc_info.value.offer_id == offer.id
+    assert exc_info.value.requested_quantity == 110
+    assert exc_info.value.max_quantity == 100
+
+    db_session.refresh(offer)
+
+    assert offer.stock_quantity == 200
+
+    matching_order = db_session.scalar(select(Order.id).where(Order.user_id == user_id))
+
+    assert matching_order is None

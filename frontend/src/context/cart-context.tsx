@@ -55,6 +55,8 @@ type CartContextType = {
   clearCart: () => void;
 };
 
+const MAX_ORDER_QUANTITY_PER_OFFER = 100;
+
 const CartContext =
   createContext<
     CartContextType | undefined
@@ -206,6 +208,14 @@ export function CartProvider({
           item.offerId ===
           product.offerId,
       );
+
+    if (
+      existing &&
+      existing.quantity >=
+        MAX_ORDER_QUANTITY_PER_OFFER
+    ) {
+      return "quantity-limit";
+    }
 
     if (
       existing &&

@@ -4,7 +4,10 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.domain.order import OrderLineSnapshot
-from app.domain.order_errors import MixedCurrencyError
+from app.domain.order_errors import (
+    MixedCurrencyError,
+    OrderQuantityLimitError,
+)
 from app.models.order import Order
 from app.repositories.order_repository import (
     create_order,
@@ -12,6 +15,8 @@ from app.repositories.order_repository import (
 )
 from app.schemas.order import OrderCreate
 from app.services.inventory_service import reserve_inventory
+
+MAX_ORDER_QUANTITY_PER_OFFER = 100
 
 
 def _aggregate_quantities(
@@ -21,6 +26,13 @@ def _aggregate_quantities(
 
     for item in request.items:
         quantities[item.offer_id] += item.quantity
+
+        if quantities[item.offer_id] > MAX_ORDER_QUANTITY_PER_OFFER:
+            raise OrderQuantityLimitError(
+                offer_id=item.offer_id,
+                requested_quantity=(quantities[item.offer_id]),
+                max_quantity=(MAX_ORDER_QUANTITY_PER_OFFER),
+            )
 
     return dict(quantities)
 

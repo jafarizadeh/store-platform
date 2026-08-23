@@ -17,6 +17,7 @@ from app.domain.order_errors import (
     MixedCurrencyError,
     OfferRequiresQuoteError,
     OfferUnavailableError,
+    OrderQuantityLimitError,
 )
 from app.schemas.order import (
     OrderCreate,
@@ -103,6 +104,17 @@ def create_order(
                 "offer_id": exc.offer_id,
                 "requested_quantity": (exc.requested_quantity),
                 "available_quantity": (exc.available_quantity),
+            },
+        ) from exc
+
+    except OrderQuantityLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "code": "quantity_limit_exceeded",
+                "offer_id": exc.offer_id,
+                "requested_quantity": (exc.requested_quantity),
+                "max_quantity": exc.max_quantity,
             },
         ) from exc
 

@@ -37,3 +37,17 @@ class InsufficientStockError(OrderDomainError):
 
 class MixedCurrencyError(OrderDomainError):
     """Raised when an order contains fixed-price offers in different currencies."""
+
+
+class OrderQuantityLimitError(Exception):
+    def __init__(
+        self,
+        offer_id: int,
+        requested_quantity: int,
+        max_quantity: int,
+    ) -> None:
+        self.offer_id = offer_id
+        self.requested_quantity = requested_quantity
+        self.max_quantity = max_quantity
+
+        super().__init__("Order quantity limit exceeded.")

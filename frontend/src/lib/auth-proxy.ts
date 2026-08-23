@@ -557,6 +557,51 @@ async function callBackend(
   );
 }
 
+export async function proxyAuthenticatedJsonMutation(
+  request: NextRequest,
+  path: string,
+  bucket: string,
+  policy: RateLimitPolicy,
+): Promise<Response> {
+  const originError =
+    validateMutationOrigin(
+      request,
+    );
+
+  if (originError) {
+    return originError;
+  }
+
+  const rateLimitError =
+    enforceRateLimit(
+      request,
+      bucket,
+      policy,
+    );
+
+  if (rateLimitError) {
+    return rateLimitError;
+  }
+
+  const bodyResult =
+    await readJsonBody(
+      request,
+    );
+
+  if (bodyResult.error) {
+    return bodyResult.error;
+  }
+
+  return callBackend(
+    request,
+    path,
+    "POST",
+    bodyResult.body,
+    true,
+  );
+}
+
+
 export async function proxyJsonAuthMutation(
   request: NextRequest,
   path: string,

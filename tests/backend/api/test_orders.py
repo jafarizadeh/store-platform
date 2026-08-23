@@ -323,3 +323,47 @@ def test_create_order_api_validates_payload(
     )
 
     assert response.status_code == 422
+
+
+def test_create_order_api_rejects_aggregate_quantity_over_limit(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _authenticate(client)
+
+    _, offer = create_product_offer(
+        db_session,
+        slug="api-order-limit",
+        stock_quantity=200,
+    )
+
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/orders",
+        json={
+            "items": [
+                {
+                    "offer_id": offer.id,
+                    "quantity": 60,
+                },
+                {
+                    "offer_id": offer.id,
+                    "quantity": 50,
+                },
+            ]
+        },
+    )
+
+    assert response.status_code == 422
+
+    assert response.json()["detail"] == {
+        "code": "quantity_limit_exceeded",
+        "offer_id": offer.id,
+        "requested_quantity": 110,
+        "max_quantity": 100,
+    }
+
+    db_session.refresh(offer)
+
+    assert offer.stock_quantity == 200

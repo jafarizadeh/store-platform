@@ -1,8 +1,16 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.auth import (
+    require_authenticated_session,
+)
 from app.db.session import get_db
 from app.domain.order_errors import (
     InsufficientStockError,
@@ -10,8 +18,17 @@ from app.domain.order_errors import (
     OfferRequiresQuoteError,
     OfferUnavailableError,
 )
-from app.schemas.order import OrderCreate, OrderResponse
-from app.services.order_service import create_pending_order
+from app.schemas.order import (
+    OrderCreate,
+    OrderResponse,
+)
+from app.services.auth_service import (
+    AuthenticatedSession,
+)
+from app.services.order_service import (
+    create_pending_order,
+    get_orders_for_user,
+)
 
 router = APIRouter(
     prefix="/orders",
@@ -23,6 +40,25 @@ DatabaseSession = Annotated[
     Depends(get_db),
 ]
 
+Authenticated = Annotated[
+    AuthenticatedSession,
+    Depends(require_authenticated_session),
+]
+
+
+@router.get(
+    "",
+    response_model=list[OrderResponse],
+)
+def list_orders(
+    db: DatabaseSession,
+    authenticated: Authenticated,
+):
+    return get_orders_for_user(
+        db,
+        authenticated.user.id,
+    )
+
 
 @router.post(
     "",
@@ -32,11 +68,13 @@ DatabaseSession = Annotated[
 def create_order(
     request: OrderCreate,
     db: DatabaseSession,
+    authenticated: Authenticated,
 ):
     try:
         return create_pending_order(
             db,
             request,
+            user_id=authenticated.user.id,
         )
 
     except OfferUnavailableError as exc:

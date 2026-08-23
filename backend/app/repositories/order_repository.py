@@ -1,4 +1,7 @@
-from sqlalchemy.orm import Session
+from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from app.domain.order import OrderLineSnapshot
 from app.models.order import Order, OrderItem
@@ -7,11 +10,13 @@ from app.models.order import Order, OrderItem
 def create_order(
     db: Session,
     *,
+    user_id: UUID,
     currency: str,
     total_cents: int,
     lines: list[OrderLineSnapshot],
 ) -> Order:
     order = Order(
+        user_id=user_id,
         status="pending",
         currency=currency,
         total_cents=total_cents,
@@ -34,3 +39,20 @@ def create_order(
     db.flush()
 
     return order
+
+
+def list_orders_for_user(
+    db: Session,
+    user_id: UUID,
+) -> list[Order]:
+    statement = (
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.user_id == user_id)
+        .order_by(
+            Order.created_at.desc(),
+            Order.id.desc(),
+        )
+    )
+
+    return list(db.scalars(statement).unique().all())

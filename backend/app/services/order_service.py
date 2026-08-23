@@ -1,11 +1,15 @@
 from collections import defaultdict
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.domain.order import OrderLineSnapshot
 from app.domain.order_errors import MixedCurrencyError
 from app.models.order import Order
-from app.repositories.order_repository import create_order
+from app.repositories.order_repository import (
+    create_order,
+    list_orders_for_user,
+)
 from app.schemas.order import OrderCreate
 from app.services.inventory_service import reserve_inventory
 
@@ -24,10 +28,12 @@ def _aggregate_quantities(
 def create_pending_order(
     db: Session,
     request: OrderCreate,
+    *,
+    user_id: UUID,
 ) -> Order:
     requested_quantities = _aggregate_quantities(request)
 
-    with db.begin():
+    try:
         offers = reserve_inventory(
             db,
             requested_quantities,
@@ -67,9 +73,26 @@ def create_pending_order(
 
         order = create_order(
             db,
+            user_id=user_id,
             currency=currency,
             total_cents=total_cents,
             lines=lines,
         )
 
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
     return order
+
+
+def get_orders_for_user(
+    db: Session,
+    user_id: UUID,
+) -> list[Order]:
+    return list_orders_for_user(
+        db,
+        user_id,
+    )

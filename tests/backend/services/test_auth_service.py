@@ -195,3 +195,19 @@ def test_logout_unknown_token_is_idempotent(
         db_session,
         "already-gone-token",
     )
+
+
+def test_register_handles_existing_autobegin_transaction(
+    db_session: Session,
+) -> None:
+    db_session.scalars(select(UserSession.id)).all()
+
+    assert db_session.in_transaction()
+
+    issued = register_user(
+        db_session,
+        email="autobegin@example.com",
+        plaintext_password=_credential(),
+    )
+
+    assert issued.raw_token

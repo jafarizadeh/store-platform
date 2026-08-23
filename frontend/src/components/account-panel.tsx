@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import OrderHistory from "@/components/order-history";
 import { useAuth } from "@/context/auth-context";
 import { authErrorMessage } from "@/lib/auth-client";
 
@@ -126,18 +127,7 @@ export default function AccountPanel() {
         </div>
       </dl>
 
-      <section className="mt-3 rounded-3xl bg-neutral-50 p-6">
-        <h3 className="text-lg font-semibold tracking-[-0.03em]">
-          Orders
-        </h3>
-
-        <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Your customer account is ready.
-          Order history will appear here
-          after orders are linked to
-          authenticated users.
-        </p>
-      </section>
+      <OrderHistory />
 
       {error && (
         <div

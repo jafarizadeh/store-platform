@@ -1,20 +1,56 @@
+from uuid import UUID
+
 import pytest
 from factories.catalog import create_product_offer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.auth_security import hash_password
 from app.domain.order_errors import (
     InsufficientStockError,
     MixedCurrencyError,
 )
 from app.models.order import Order, OrderItem
-from app.schemas.order import OrderCreate, OrderItemCreate
-from app.services.order_service import create_pending_order
+from app.models.user import User
+from app.schemas.order import (
+    OrderCreate,
+    OrderItemCreate,
+)
+from app.services.order_service import (
+    create_pending_order,
+)
+
+TEST_CREDENTIAL_HASH = hash_password("order-" + "service-test-credential")
+
+
+def _create_user(
+    db_session: Session,
+    *,
+    email: str,
+) -> UUID:
+    user = User(
+        email=email,
+        password_hash=TEST_CREDENTIAL_HASH,
+    )
+
+    db_session.add(user)
+    db_session.flush()
+
+    user_id = user.id
+
+    db_session.commit()
+
+    return user_id
 
 
 def test_create_pending_order_uses_server_offer_prices(
     db_session: Session,
 ) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-prices@example.com",
+    )
+
     _, first = create_product_offer(
         db_session,
         slug="order-first",
@@ -45,8 +81,10 @@ def test_create_pending_order_uses_server_offer_prices(
                 ),
             ]
         ),
+        user_id=user_id,
     )
 
+    assert order.user_id == user_id
     assert order.status == "pending"
     assert order.currency == "EUR"
     assert order.total_cents == 3900
@@ -58,6 +96,11 @@ def test_create_pending_order_uses_server_offer_prices(
 def test_create_pending_order_aggregates_duplicate_offers(
     db_session: Session,
 ) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-duplicate@example.com",
+    )
+
     _, offer = create_product_offer(
         db_session,
         slug="order-duplicate",
@@ -81,6 +124,7 @@ def test_create_pending_order_aggregates_duplicate_offers(
                 ),
             ]
         ),
+        user_id=user_id,
     )
 
     assert len(order.items) == 1
@@ -92,6 +136,11 @@ def test_create_pending_order_aggregates_duplicate_offers(
 def test_create_pending_order_snapshots_catalog_data(
     db_session: Session,
 ) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-snapshot@example.com",
+    )
+
     product, offer = create_product_offer(
         db_session,
         slug="order-snapshot",
@@ -114,6 +163,7 @@ def test_create_pending_order_snapshots_catalog_data(
                 )
             ]
         ),
+        user_id=user_id,
     )
 
     item = order.items[0]
@@ -128,6 +178,11 @@ def test_create_pending_order_snapshots_catalog_data(
 def test_mixed_currency_rolls_back_inventory(
     db_session: Session,
 ) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-currency@example.com",
+    )
+
     _, eur_offer = create_product_offer(
         db_session,
         slug="order-eur",
@@ -161,6 +216,7 @@ def test_mixed_currency_rolls_back_inventory(
         create_pending_order(
             db_session,
             request,
+            user_id=user_id,
         )
 
     db_session.expire_all()
@@ -189,6 +245,11 @@ def test_mixed_currency_rolls_back_inventory(
 def test_insufficient_stock_does_not_create_order(
     db_session: Session,
 ) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-stock@example.com",
+    )
+
     _, offer = create_product_offer(
         db_session,
         slug="order-no-stock",
@@ -208,6 +269,7 @@ def test_insufficient_stock_does_not_create_order(
                     )
                 ]
             ),
+            user_id=user_id,
         )
 
     matching_order_ids = set(

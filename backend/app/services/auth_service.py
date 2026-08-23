@@ -76,7 +76,7 @@ def register_user(
 ) -> IssuedSession:
     normalized_email = normalize_email(email)
 
-    with db.begin():
+    try:
         if (
             get_user_by_email(
                 db,
@@ -92,14 +92,21 @@ def register_user(
                 email=normalized_email,
                 password_hash=hash_password(plaintext_password),
             )
-
         except IntegrityError as exc:
             raise (EmailAlreadyRegisteredError) from exc
 
-        return _issue_session(
+        issued = _issue_session(
             db,
             user,
         )
+
+        db.commit()
+
+        return issued
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 def login_user(
@@ -110,7 +117,7 @@ def login_user(
 ) -> IssuedSession:
     normalized_email = normalize_email(email)
 
-    with db.begin():
+    try:
         user = get_user_by_email(
             db,
             normalized_email,
@@ -131,10 +138,18 @@ def login_user(
                 hash_password(plaintext_password),
             )
 
-        return _issue_session(
+        issued = _issue_session(
             db,
             user,
         )
+
+        db.commit()
+
+        return issued
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 def authenticate_session(
@@ -161,16 +176,20 @@ def logout_session(
 ) -> None:
     token_hash = hash_session_token(raw_token)
 
-    with db.begin():
+    try:
         session = get_session_by_token_hash(
             db,
             token_hash,
         )
 
-        if session is None:
-            return
+        if session is not None:
+            revoke_session(
+                db,
+                session,
+            )
 
-        revoke_session(
-            db,
-            session,
-        )
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise

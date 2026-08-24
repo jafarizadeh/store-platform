@@ -454,6 +454,7 @@ def prepare_provider_status_check(
     *,
     attempt_id: UUID,
     provider: str,
+    user_id: UUID | None = None,
 ):
     from app.domain.payment import (
         PaymentAttemptStatus,
@@ -498,6 +499,11 @@ def prepare_provider_status_check(
 
         if order is None:
             raise PaymentOrderUnavailableError(payment.order_id)
+
+        if user_id is not None and order.user_id != user_id:
+            # Do not reveal whether another
+            # customer's payment attempt exists.
+            raise PaymentOrderUnavailableError(order.id)
 
         request = PaymentStatusRequest(
             payment_id=payment.id,
@@ -693,3 +699,153 @@ def reconcile_provider_status(
         raise
 
     return attempt
+
+
+def prepare_provider_completion(
+    db: Session,
+    *,
+    attempt_id: UUID,
+    user_id: UUID | None,
+    provider: str,
+):
+    from app.domain.payment import (
+        PaymentAttemptStatus,
+        PaymentStatus,
+    )
+    from app.domain.payment_errors import (
+        PaymentProviderResultConflictError,
+    )
+    from app.payments.provider import (
+        PaymentCompletionRequest,
+    )
+
+    normalized_provider = provider.strip().lower()
+
+    if not normalized_provider or len(normalized_provider) > 40:
+        raise InvalidPaymentProviderError
+
+    snapshot = get_payment_attempt_with_payment(
+        db,
+        attempt_id=attempt_id,
+    )
+
+    if snapshot is None:
+        db.rollback()
+        raise PaymentAttemptNotFoundError(attempt_id)
+
+    payment_id = snapshot.payment_id
+    order_id = snapshot.payment.order_id
+
+    try:
+        # Global lock order:
+        # Order -> Payment -> Attempt.
+        order = get_order_for_update(
+            db,
+            order_id=order_id,
+        )
+
+        if order is None:
+            raise PaymentOrderUnavailableError(order_id)
+
+        if user_id is not None and order.user_id != user_id:
+            raise PaymentOrderUnavailableError(order_id)
+
+        payment = get_payment_for_update(
+            db,
+            payment_id=payment_id,
+        )
+
+        if payment is None:
+            raise PaymentNotFoundError(payment_id)
+
+        attempt = get_payment_attempt_for_update(
+            db,
+            attempt_id=attempt_id,
+        )
+
+        if attempt is None:
+            raise PaymentAttemptNotFoundError(attempt_id)
+
+        if attempt.provider != normalized_provider:
+            raise InvalidPaymentProviderError
+
+        if attempt.provider_reference is None:
+            # A CREATED attempt whose initiation
+            # result is still ambiguous cannot
+            # safely enter provider completion.
+            raise PaymentProviderResultConflictError
+
+        current_status = PaymentAttemptStatus(attempt.status)
+
+        request = PaymentCompletionRequest(
+            payment_id=payment.id,
+            attempt_id=attempt.id,
+            order_id=order.id,
+            order_number=order.order_number,
+            amount_cents=payment.amount_cents,
+            currency=payment.currency,
+            provider_reference=(attempt.provider_reference),
+        )
+
+        existing = None
+
+        if current_status in {
+            PaymentAttemptStatus.SUCCEEDED,
+            PaymentAttemptStatus.FAILED,
+            PaymentAttemptStatus.CANCELLED,
+        }:
+            existing = {
+                "status": current_status,
+                "provider_reference": (attempt.provider_reference),
+                "failure_code": (attempt.failure_code),
+            }
+
+        elif current_status != PaymentAttemptStatus.PENDING:
+            raise PaymentProviderResultConflictError
+
+        else:
+            if payment.status != PaymentStatus.PENDING.value:
+                raise PaymentNotPendingError(
+                    payment_id=payment.id,
+                    current_status=payment.status,
+                )
+
+            if order.status != OrderStatus.PENDING.value:
+                raise PaymentOrderNotPayableError(
+                    order_id=order.id,
+                    current_status=order.status,
+                    reason="order_not_pending",
+                )
+
+            # IMPORTANT:
+            # reservation_expires_at is
+            # deliberately NOT checked here.
+            # An unresolved PENDING attempt keeps
+            # inventory protected until provider
+            # completion/reconciliation resolves it.
+
+        # External capture/completion MUST occur
+        # without an open database transaction.
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return request, existing
+
+
+def reconcile_provider_completion(
+    db: Session,
+    *,
+    attempt_id: UUID,
+    result,
+) -> PaymentAttempt:
+    # Completion and status verification share
+    # the same immutable terminal reconciliation
+    # rules once a provider reference exists.
+    return reconcile_provider_status(
+        db,
+        attempt_id=attempt_id,
+        result=result,
+    )

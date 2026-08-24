@@ -15,9 +15,25 @@ import { useAuth } from "@/context/auth-context";
 import { useCart } from "@/context/cart-context";
 import { formatMoney } from "@/lib/catalog";
 import {
+  clearCheckoutOrderIdempotency,
   createOrder,
   orderErrorMessage,
 } from "@/lib/orders-client";
+import {
+  clearPaymentInitiationKey,
+  initiatePayment,
+  paymentErrorMessage,
+  PaymentRequestError,
+  preparePayment,
+} from "@/lib/payments-client";
+import {
+  clearPaymentFlow,
+  storePaymentFlow,
+} from "@/lib/payment-flow";
+
+
+const PAYMENT_PROVIDER = "paypal";
+
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -46,9 +62,9 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (
-      items.length > 0 &&
-      !isAuthLoading &&
-      !user
+      items.length > 0
+      && !isAuthLoading
+      && !user
     ) {
       router.replace(
         "/login?next=/checkout",
@@ -61,11 +77,12 @@ export default function CheckoutPage() {
     user,
   ]);
 
-  async function handleCreateOrder(): Promise<void> {
+  async function handlePayment():
+    Promise<void> {
     if (
-      isSubmitting ||
-      !user ||
-      items.length === 0
+      isSubmitting
+      || !user
+      || items.length === 0
     ) {
       return;
     }
@@ -81,22 +98,97 @@ export default function CheckoutPage() {
         })),
       );
 
-      clearCart();
-
-      router.push(
-        `/checkout/success?order=${encodeURIComponent(
+      const payment =
+        await preparePayment(
           order.id,
-        )}&number=${encodeURIComponent(
+        );
+
+      const initiation =
+        await initiatePayment(
+          payment.id,
+          PAYMENT_PROVIDER,
+        );
+
+      if (
+        initiation.status === "succeeded"
+      ) {
+        clearPaymentInitiationKey(
+          payment.id,
+          PAYMENT_PROVIDER,
+        );
+
+        clearPaymentFlow();
+        clearCheckoutOrderIdempotency();
+        clearCart();
+
+        router.push(
+          (
+            "/checkout/success"
+              + `?attempt=${encodeURIComponent(
+                initiation.attempt_id,
+              )}`
+          ),
+        );
+
+        return;
+      }
+
+      if (
+        initiation.status !== "pending"
+        || !initiation.approval_url
+      ) {
+        clearPaymentInitiationKey(
+          payment.id,
+          PAYMENT_PROVIDER,
+        );
+
+        throw new PaymentRequestError(
+          502,
+          "payment_provider_error",
+        );
+      }
+
+      storePaymentFlow({
+        orderId: order.id,
+        orderNumber:
           order.order_number,
-        )}`,
+        paymentId: payment.id,
+        attemptId:
+          initiation.attempt_id,
+        provider: "paypal",
+      });
+
+      window.location.assign(
+        initiation.approval_url,
       );
     } catch (requestError) {
-      setError(
-        orderErrorMessage(
-          requestError,
-        ),
-      );
-    } finally {
+      if (
+        requestError
+        instanceof PaymentRequestError
+      ) {
+        if (
+          requestError.code
+            === "reservation_expired"
+          || requestError.code
+            === "order_not_payable"
+        ) {
+          clearCheckoutOrderIdempotency();
+          clearPaymentFlow();
+        }
+
+        setError(
+          paymentErrorMessage(
+            requestError,
+          ),
+        );
+      } else {
+        setError(
+          orderErrorMessage(
+            requestError,
+          ),
+        );
+      }
+
       setIsSubmitting(false);
     }
   }
@@ -134,8 +226,8 @@ export default function CheckoutPage() {
   }
 
   if (
-    isAuthLoading ||
-    !user
+    isAuthLoading
+    || !user
   ) {
     return (
       <main className="min-h-screen bg-white text-neutral-950">
@@ -163,14 +255,13 @@ export default function CheckoutPage() {
           </p>
 
           <h1 className="mt-4 text-5xl font-semibold tracking-[-0.04em]">
-            Review your order.
+            Review and pay.
           </h1>
 
           <p className="mt-4 max-w-2xl text-lg leading-8 text-neutral-600">
-            Create a pending order from
-            your cart. Prices, availability
-            and totals are verified again
-            by the server.
+            Prices, availability and totals
+            are verified again by the server
+            before a payment attempt begins.
           </p>
         </div>
 
@@ -190,19 +281,42 @@ export default function CheckoutPage() {
               </p>
             </section>
 
+            <section className="rounded-3xl border border-neutral-200 p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                Payment method
+              </p>
+
+              <div className="mt-4 flex items-center justify-between gap-6 rounded-2xl bg-neutral-50 p-5">
+                <div>
+                  <h2 className="font-semibold">
+                    PayPal
+                  </h2>
+
+                  <p className="mt-1 text-sm leading-6 text-neutral-500">
+                    You will continue to
+                    PayPal to approve the
+                    payment.
+                  </p>
+                </div>
+
+                <span className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold">
+                  PayPal
+                </span>
+              </div>
+            </section>
+
             <section className="rounded-3xl bg-neutral-50 p-7">
               <h2 className="text-xl font-semibold">
-                What happens next?
+                Secure payment flow
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm leading-7 text-neutral-600">
-                This creates a pending
-                order linked to your
-                account. Payment and
-                delivery details are not
-                collected yet and will be
-                added in the next checkout
-                stages.
+                ByNET creates the order and
+                payment attempt server-side.
+                A browser redirect never marks
+                an order as paid. Payment is
+                confirmed only after the server
+                verifies the provider result.
               </p>
             </section>
 
@@ -219,18 +333,18 @@ export default function CheckoutPage() {
               type="button"
               disabled={isSubmitting}
               onClick={() => {
-                void handleCreateOrder();
+                void handlePayment();
               }}
               className="w-full rounded-full bg-neutral-950 px-8 py-4 text-sm font-semibold text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-400"
             >
               {isSubmitting
-                ? "Creating order..."
-                : "Create pending order"}
+                ? "Preparing secure payment..."
+                : "Continue with PayPal"}
             </button>
 
             <p className="text-center text-xs leading-5 text-neutral-400">
-              No payment will be charged
-              at this stage.
+              Your cart is kept until payment
+              is conclusively confirmed.
             </p>
           </div>
 
@@ -294,7 +408,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between">
                 <span className="text-neutral-400">
-                  Estimated subtotal
+                  Total
                 </span>
 
                 <span>
@@ -307,9 +421,9 @@ export default function CheckoutPage() {
             </div>
 
             <div className="mt-7 border-t border-neutral-700 pt-7 text-xs leading-5 text-neutral-400">
-              The final stored total is
-              calculated from current
-              server-side offer prices.
+              The authoritative payment amount
+              is taken from the stored order,
+              not from this browser summary.
             </div>
 
             <Link

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,14 +13,29 @@ from app.core.request_limits import RequestSizeLimitMiddleware
 from app.core.request_logging import RequestLoggingMiddleware
 from app.core.security import SecurityHeadersMiddleware
 from app.db.session import engine
+from app.payments.registry import (
+    close_payment_provider_registry,
+)
 
 development = settings.app_env == "development"
 
 configure_logging()
 
+
+@asynccontextmanager
+async def lifespan(
+    _: FastAPI,
+):
+    try:
+        yield
+    finally:
+        close_payment_provider_registry()
+
+
 app = FastAPI(
     title=settings.app_name,
     debug=False,
+    lifespan=lifespan,
     docs_url="/docs" if development else None,
     redoc_url=None,
     openapi_url="/openapi.json" if development else None,

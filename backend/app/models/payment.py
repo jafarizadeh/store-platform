@@ -193,3 +193,102 @@ class PaymentAttempt(Base):
     payment: Mapped[Payment] = relationship(
         back_populates="attempts",
     )
+
+
+class PaymentWebhookEvent(Base):
+    __tablename__ = "payment_webhook_events"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "provider_event_id",
+            name=("uq_payment_webhook_events_provider_event"),
+        ),
+        Index(
+            "ix_payment_webhook_events_received_at",
+            "received_at",
+        ),
+        Index(
+            "ix_payment_webhook_events_provider_reference",
+            "provider",
+            "provider_reference",
+        ),
+        Index(
+            "ix_payment_webhook_events_attempt",
+            "payment_attempt_id",
+        ),
+        Index(
+            "ix_payment_webhook_events_processing_started_at",
+            "processing_started_at",
+        ),
+        CheckConstraint(
+            """
+            (
+                processing_token IS NULL
+                AND processing_started_at IS NULL
+            )
+            OR
+            (
+                processing_token IS NOT NULL
+                AND processing_started_at IS NOT NULL
+            )
+            """,
+            name=("ck_payment_webhook_events_processing_lease_pair"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    provider: Mapped[str] = mapped_column(
+        String(40),
+        nullable=False,
+    )
+
+    provider_event_id: Mapped[str] = mapped_column(
+        String(200),
+        nullable=False,
+    )
+
+    event_type: Mapped[str] = mapped_column(
+        String(120),
+        nullable=False,
+    )
+
+    provider_reference: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+    )
+
+    payment_attempt_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey(
+            "payment_attempts.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+    )
+
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    processing_token: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        nullable=True,
+    )
+
+    processing_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    processed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )

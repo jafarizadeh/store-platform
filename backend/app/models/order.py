@@ -35,7 +35,7 @@ class Order(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('pending', 'paid', 'cancelled', 'refunded')",
+            "status IN ('pending', 'paid', 'cancelled', 'expired', 'refunded')",
             name="ck_orders_valid_status",
         ),
         CheckConstraint(
@@ -50,6 +50,11 @@ class Order(Base):
             "user_id",
             "idempotency_key",
             name="uq_orders_user_id_idempotency_key",
+        ),
+        Index(
+            "ix_orders_pending_reservation_expiry",
+            "reservation_expires_at",
+            postgresql_where=text("status = 'pending'"),
         ),
     )
 
@@ -90,6 +95,11 @@ class Order(Base):
         default="pending",
         server_default="pending",
         index=True,
+    )
+
+    reservation_expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
     )
 
     currency: Mapped[str] = mapped_column(

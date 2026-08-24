@@ -1,14 +1,18 @@
 import hashlib
 import json
 from collections import defaultdict
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.domain.order import OrderLineSnapshot
 from app.domain.order_errors import (
     IdempotencyConflictError,
+    InvalidOrderTransitionError,
     MixedCurrencyError,
+    OrderNotFoundError,
     OrderQuantityLimitError,
 )
 from app.domain.order_event import (
@@ -16,13 +20,19 @@ from app.domain.order_event import (
     OrderEventSource,
     OrderEventType,
 )
+from app.domain.order_state import (
+    OrderStatus,
+    is_order_transition_allowed,
+)
 from app.models.order import Order
 from app.repositories.order_event_repository import (
     append_order_event,
 )
 from app.repositories.order_repository import (
     create_order,
+    get_due_pending_orders_for_update,
     get_order_by_idempotency_key,
+    get_order_for_update,
     list_orders_for_user,
 )
 from app.repositories.user_repository import (
@@ -30,6 +40,7 @@ from app.repositories.user_repository import (
 )
 from app.schemas.order import OrderCreate
 from app.services.inventory_service import (
+    release_inventory,
     reserve_inventory,
 )
 
@@ -152,11 +163,16 @@ def create_pending_order(
 
         total_cents = sum(line.unit_price_cents * line.quantity for line in lines)
 
+        reservation_expires_at = datetime.now(UTC) + timedelta(
+            minutes=(settings.order_reservation_minutes)
+        )
+
         order = create_order(
             db,
             user_id=user_id,
             idempotency_key=(idempotency_key),
             request_fingerprint=(request_fingerprint),
+            reservation_expires_at=(reservation_expires_at),
             currency=currency,
             total_cents=total_cents,
             lines=lines,
@@ -201,6 +217,178 @@ def create_pending_order(
         raise
 
     return order
+
+
+def transition_order_status(
+    db: Session,
+    *,
+    order_id: UUID,
+    target_status: OrderStatus,
+    actor_type: OrderActorType = (OrderActorType.SYSTEM),
+    actor_id: str | None = None,
+    source: OrderEventSource = (OrderEventSource.ORDER_SERVICE),
+) -> Order:
+    try:
+        order = get_order_for_update(
+            db,
+            order_id=order_id,
+        )
+
+        if order is None:
+            raise OrderNotFoundError(order_id)
+
+        current_status = OrderStatus(order.status)
+
+        if not is_order_transition_allowed(
+            current_status,
+            target_status,
+        ):
+            raise (
+                InvalidOrderTransitionError(
+                    current_status=(current_status.value),
+                    target_status=(target_status.value),
+                )
+            )
+
+        order.status = target_status.value
+
+        append_order_event(
+            db,
+            order_id=order.id,
+            event_type=(OrderEventType.ORDER_STATUS_CHANGED),
+            actor_type=actor_type,
+            actor_id=actor_id,
+            source=source,
+            event_data={
+                "from_status": (current_status.value),
+                "to_status": (target_status.value),
+            },
+        )
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return order
+
+
+def expire_due_pending_orders(
+    db: Session,
+    *,
+    current_time: datetime | None = None,
+    batch_size: int = 100,
+) -> int:
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive.")
+
+    if current_time is None:
+        current_time = datetime.now(UTC)
+
+    try:
+        orders = get_due_pending_orders_for_update(
+            db,
+            current_time=current_time,
+            limit=batch_size,
+        )
+
+        if not orders:
+            db.commit()
+            return 0
+
+        # Critical payment/expiry race boundary:
+        #
+        # The Order rows above are already locked.
+        # Re-read payment state now, inside the same
+        # transaction, before releasing inventory.
+        #
+        # CREATED is externally ambiguous: the provider
+        # may have accepted a request whose response was
+        # lost.
+        #
+        # PENDING is also externally unresolved: customer
+        # or provider confirmation may still succeed.
+        from app.repositories.payment_repository import (
+            get_order_ids_with_unresolved_payment_attempts,
+        )
+
+        protected_order_ids = get_order_ids_with_unresolved_payment_attempts(
+            db,
+            order_ids=[order.id for order in orders],
+        )
+
+        orders = [order for order in orders if order.id not in protected_order_ids]
+
+        if not orders:
+            db.commit()
+            return 0
+
+        released_quantities: dict[
+            int,
+            int,
+        ] = defaultdict(int)
+
+        for order in orders:
+            for item in order.items:
+                released_quantities[item.offer_id] += item.quantity
+
+        # Lock all affected offer rows once,
+        # in deterministic ID order, before
+        # changing any stock.
+        release_inventory(
+            db,
+            dict(released_quantities),
+        )
+
+        for order in orders:
+            if order.status != OrderStatus.PENDING.value:
+                raise RuntimeError("Locked expiry candidate is no longer pending.")
+
+            order.status = OrderStatus.EXPIRED.value
+
+            append_order_event(
+                db,
+                order_id=order.id,
+                event_type=(OrderEventType.ORDER_STATUS_CHANGED),
+                actor_type=(OrderActorType.SYSTEM),
+                actor_id=None,
+                source=(OrderEventSource.RESERVATION_EXPIRY),
+                event_data={
+                    "from_status": "pending",
+                    "to_status": "expired",
+                },
+            )
+
+            append_order_event(
+                db,
+                order_id=order.id,
+                event_type=(OrderEventType.INVENTORY_RELEASED),
+                actor_type=(OrderActorType.SYSTEM),
+                actor_id=None,
+                source=(OrderEventSource.RESERVATION_EXPIRY),
+                event_data={
+                    "reason": ("reservation_expired"),
+                    "items": [
+                        {
+                            "offer_id": (item.offer_id),
+                            "quantity": (item.quantity),
+                        }
+                        for item in sorted(
+                            order.items,
+                            key=lambda item: item.offer_id,
+                        )
+                    ],
+                },
+            )
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return len(orders)
 
 
 def get_orders_for_user(

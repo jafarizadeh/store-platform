@@ -100,3 +100,19 @@ class InvalidPaymentProviderResultError(PaymentDomainError):
 
 class PaymentProviderResultConflictError(PaymentDomainError):
     """A retry returned data conflicting with the stored provider result."""
+
+
+class PaymentWebhookEventConflictError(PaymentDomainError):
+    """A provider event ID was replayed with conflicting data."""
+
+
+class PaymentWebhookClaimLostError(PaymentDomainError):
+    """A webhook worker no longer owns the processing lease."""
+
+
+class InvalidPaymentWebhookEventError(PaymentDomainError):
+    """Webhook metadata is malformed or outside accepted limits."""
+
+
+class PaymentWebhookReferenceUnavailableError(PaymentDomainError):
+    """A verified webhook does not map to a known payment attempt."""

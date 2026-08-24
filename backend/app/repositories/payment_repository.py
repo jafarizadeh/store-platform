@@ -207,3 +207,108 @@ def get_order_ids_with_unresolved_payment_attempts(
     )
 
     return set(db.scalars(statement).all())
+
+
+def insert_payment_webhook_event_claim(
+    db: Session,
+    *,
+    provider: str,
+    provider_event_id: str,
+    event_type: str,
+    provider_reference: str | None,
+    processing_token: UUID,
+    processing_started_at,
+) -> UUID | None:
+    from sqlalchemy.dialects.postgresql import (
+        insert,
+    )
+
+    from app.models.payment import (
+        PaymentWebhookEvent,
+    )
+
+    statement = (
+        insert(PaymentWebhookEvent)
+        .values(
+            provider=provider,
+            provider_event_id=provider_event_id,
+            event_type=event_type,
+            provider_reference=provider_reference,
+            processing_token=processing_token,
+            processing_started_at=(processing_started_at),
+        )
+        .on_conflict_do_nothing(
+            constraint=("uq_payment_webhook_events_provider_event"),
+        )
+        .returning(
+            PaymentWebhookEvent.id,
+        )
+    )
+
+    return db.scalar(statement)
+
+
+def get_payment_webhook_event_for_update(
+    db: Session,
+    *,
+    webhook_event_id: UUID,
+):
+    from app.models.payment import (
+        PaymentWebhookEvent,
+    )
+
+    statement = (
+        select(PaymentWebhookEvent)
+        .where(PaymentWebhookEvent.id == webhook_event_id)
+        .with_for_update()
+        .execution_options(
+            populate_existing=True,
+        )
+    )
+
+    return db.scalar(statement)
+
+
+def get_payment_webhook_event_by_provider_id_for_update(
+    db: Session,
+    *,
+    provider: str,
+    provider_event_id: str,
+):
+    from app.models.payment import (
+        PaymentWebhookEvent,
+    )
+
+    statement = (
+        select(PaymentWebhookEvent)
+        .where(
+            PaymentWebhookEvent.provider == provider,
+            PaymentWebhookEvent.provider_event_id == provider_event_id,
+        )
+        .with_for_update()
+        .execution_options(
+            populate_existing=True,
+        )
+    )
+
+    return db.scalar(statement)
+
+
+def get_payment_attempt_by_provider_reference(
+    db: Session,
+    *,
+    provider: str,
+    provider_reference: str,
+) -> PaymentAttempt | None:
+    normalized_provider = provider.strip().lower()
+
+    statement = (
+        select(PaymentAttempt)
+        .where(
+            PaymentAttempt.provider == normalized_provider,
+            PaymentAttempt.provider_reference == provider_reference,
+        )
+        .limit(1)
+    )
+
+    return db.scalar(statement)

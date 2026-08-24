@@ -310,12 +310,26 @@ export async function createOrder(
   const payload =
     await response.json();
 
-  clearIdempotencyKey(
-    idempotencyKey,
-  );
-
+  // Keep the checkout idempotency key
+  // until payment is conclusively finished.
+  // If payment setup temporarily fails,
+  // retrying the same cart must reuse the
+  // same pending order instead of creating
+  // a duplicate order.
   return payload as CustomerOrder;
 }
+
+export function clearCheckoutOrderIdempotency():
+  void {
+  try {
+    window.sessionStorage.removeItem(
+      IDEMPOTENCY_STORAGE_KEY,
+    );
+  } catch {
+    // Nothing else is required.
+  }
+}
+
 
 export function orderErrorMessage(
   error: unknown,

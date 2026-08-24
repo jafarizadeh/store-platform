@@ -29,6 +29,12 @@ type RateLimitState = {
   resetAt: number;
 };
 
+type BackendCallOptions = Readonly<{
+  timeoutMs?: number;
+  unavailableCode?: string;
+}>;
+
+
 const globalRateLimitState =
   globalThis as typeof globalThis & {
     __bynetAuthRateLimits?: Map<
@@ -461,6 +467,7 @@ async function callBackend(
   method: "GET" | "POST",
   body: string | undefined,
   includeSession: boolean,
+  options: BackendCallOptions = {},
 ): Promise<Response> {
   const url = new URL(
     path,
@@ -482,13 +489,14 @@ async function callBackend(
         body,
         signal:
           AbortSignal.timeout(
-            5_000,
+            options.timeoutMs ?? 5_000,
           ),
       });
   } catch {
     return jsonError(
       502,
-      "auth_backend_unavailable",
+      options.unavailableCode
+        ?? "auth_backend_unavailable",
     );
   }
 
@@ -576,6 +584,7 @@ export async function proxyAuthenticatedJsonMutation(
   path: string,
   bucket: string,
   policy: RateLimitPolicy,
+  options: BackendCallOptions = {},
 ): Promise<Response> {
   const originError =
     validateMutationOrigin(
@@ -612,6 +621,7 @@ export async function proxyAuthenticatedJsonMutation(
     "POST",
     bodyResult.body,
     true,
+    options,
   );
 }
 

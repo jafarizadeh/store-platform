@@ -6,6 +6,7 @@ from app.models.order import (
 from app.models.payment import (
     Payment,
     PaymentAttempt,
+    PaymentWebhookEvent,
 )
 from app.models.product import Product
 from app.models.product_image import (
@@ -25,6 +26,7 @@ __all__ = [
     "OrderItem",
     "Payment",
     "PaymentAttempt",
+    "PaymentWebhookEvent",
     "Product",
     "ProductImage",
     "ProductOffer",

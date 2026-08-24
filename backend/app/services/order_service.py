@@ -1,10 +1,12 @@
 import hashlib
 import json
 from collections import defaultdict
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.domain.order import OrderLineSnapshot
 from app.domain.order_errors import (
     IdempotencyConflictError,
@@ -28,6 +30,7 @@ from app.repositories.order_event_repository import (
 )
 from app.repositories.order_repository import (
     create_order,
+    get_due_pending_orders_for_update,
     get_order_by_idempotency_key,
     get_order_for_update,
     list_orders_for_user,
@@ -37,6 +40,7 @@ from app.repositories.user_repository import (
 )
 from app.schemas.order import OrderCreate
 from app.services.inventory_service import (
+    release_inventory,
     reserve_inventory,
 )
 
@@ -159,11 +163,16 @@ def create_pending_order(
 
         total_cents = sum(line.unit_price_cents * line.quantity for line in lines)
 
+        reservation_expires_at = datetime.now(UTC) + timedelta(
+            minutes=(settings.order_reservation_minutes)
+        )
+
         order = create_order(
             db,
             user_id=user_id,
             idempotency_key=(idempotency_key),
             request_fingerprint=(request_fingerprint),
+            reservation_expires_at=(reservation_expires_at),
             currency=currency,
             total_cents=total_cents,
             lines=lines,
@@ -263,6 +272,96 @@ def transition_order_status(
         raise
 
     return order
+
+
+def expire_due_pending_orders(
+    db: Session,
+    *,
+    current_time: datetime | None = None,
+    batch_size: int = 100,
+) -> int:
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive.")
+
+    if current_time is None:
+        current_time = datetime.now(UTC)
+
+    try:
+        orders = get_due_pending_orders_for_update(
+            db,
+            current_time=current_time,
+            limit=batch_size,
+        )
+
+        if not orders:
+            db.commit()
+            return 0
+
+        released_quantities: dict[
+            int,
+            int,
+        ] = defaultdict(int)
+
+        for order in orders:
+            for item in order.items:
+                released_quantities[item.offer_id] += item.quantity
+
+        # Lock all affected offer rows once,
+        # in deterministic ID order, before
+        # changing any stock.
+        release_inventory(
+            db,
+            dict(released_quantities),
+        )
+
+        for order in orders:
+            if order.status != OrderStatus.PENDING.value:
+                raise RuntimeError("Locked expiry candidate is no longer pending.")
+
+            order.status = OrderStatus.EXPIRED.value
+
+            append_order_event(
+                db,
+                order_id=order.id,
+                event_type=(OrderEventType.ORDER_STATUS_CHANGED),
+                actor_type=(OrderActorType.SYSTEM),
+                actor_id=None,
+                source=(OrderEventSource.RESERVATION_EXPIRY),
+                event_data={
+                    "from_status": "pending",
+                    "to_status": "expired",
+                },
+            )
+
+            append_order_event(
+                db,
+                order_id=order.id,
+                event_type=(OrderEventType.INVENTORY_RELEASED),
+                actor_type=(OrderActorType.SYSTEM),
+                actor_id=None,
+                source=(OrderEventSource.RESERVATION_EXPIRY),
+                event_data={
+                    "reason": ("reservation_expired"),
+                    "items": [
+                        {
+                            "offer_id": (item.offer_id),
+                            "quantity": (item.quantity),
+                        }
+                        for item in sorted(
+                            order.items,
+                            key=lambda item: item.offer_id,
+                        )
+                    ],
+                },
+            )
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return len(orders)
 
 
 def get_orders_for_user(

@@ -8,6 +8,7 @@ from app.domain.order_errors import (
 from app.models.product_offer import ProductOffer
 from app.repositories.offer_repository import (
     get_active_offers_for_update,
+    get_offers_for_update,
 )
 
 
@@ -54,3 +55,25 @@ def reserve_inventory(
             offer.stock_quantity -= requested_quantity
 
     return offers
+
+
+def release_inventory(
+    db: Session,
+    released_quantities: dict[int, int],
+) -> None:
+    if not released_quantities:
+        return
+
+    offers = get_offers_for_update(
+        db,
+        set(released_quantities),
+    )
+
+    for offer_id in sorted(released_quantities):
+        offer = offers.get(offer_id)
+
+        if offer is None:
+            raise RuntimeError(f"Reserved offer no longer exists: {offer_id}.")
+
+        if offer.track_inventory:
+            offer.stock_quantity += released_quantities[offer_id]

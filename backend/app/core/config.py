@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_name: str = "ByNET API"
 
+    order_reservation_minutes: int = 15
+
     database_url: SecretStr
 
     allowed_hosts: list[str] = [

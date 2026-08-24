@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import (
@@ -47,6 +48,7 @@ def create_order(
     user_id: UUID,
     idempotency_key: str,
     request_fingerprint: str,
+    reservation_expires_at: datetime,
     currency: str,
     total_cents: int,
     lines: list[OrderLineSnapshot],
@@ -57,6 +59,7 @@ def create_order(
         idempotency_key=(idempotency_key),
         request_fingerprint=(request_fingerprint),
         status="pending",
+        reservation_expires_at=(reservation_expires_at),
         currency=currency,
         total_cents=total_cents,
     )
@@ -111,6 +114,30 @@ def get_order_for_update(
     )
 
     return db.scalar(statement)
+
+
+def get_due_pending_orders_for_update(
+    db: Session,
+    *,
+    current_time: datetime,
+    limit: int,
+) -> list[Order]:
+    statement = (
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(
+            Order.status == "pending",
+            Order.reservation_expires_at <= current_time,
+        )
+        .order_by(
+            Order.reservation_expires_at,
+            Order.id,
+        )
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+
+    return list(db.scalars(statement).unique().all())
 
 
 def list_orders_for_user(

@@ -51,6 +51,11 @@ class Order(Base):
             "idempotency_key",
             name="uq_orders_user_id_idempotency_key",
         ),
+        Index(
+            "ix_orders_pending_reservation_expiry",
+            "reservation_expires_at",
+            postgresql_where=text("status = 'pending'"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -90,6 +95,11 @@ class Order(Base):
         default="pending",
         server_default="pending",
         index=True,
+    )
+
+    reservation_expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
     )
 
     currency: Mapped[str] = mapped_column(

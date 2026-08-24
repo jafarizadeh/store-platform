@@ -86,6 +86,8 @@ export default function CheckoutPage() {
       router.push(
         `/checkout/success?order=${encodeURIComponent(
           order.id,
+        )}&number=${encodeURIComponent(
+          order.order_number,
         )}`,
       );
     } catch (requestError) {

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.order import Order
+from app.models.order import Order, OrderEvent
 
 
 def _credential() -> str:
@@ -109,11 +109,33 @@ def test_create_order_api_returns_server_calculated_total(
     assert payload["total_cents"] == 4000
     assert len(payload["items"]) == 2
 
+    order_number = payload["order_number"]
+
+    assert isinstance(
+        order_number,
+        str,
+    )
+    assert order_number.startswith("BY-")
+
     order = db_session.scalar(select(Order).where(Order.id == UUID(payload["id"])))
 
     assert order is not None
 
     assert order.user_id == UUID(str(user["id"]))
+    assert order.order_number == order_number
+
+    events = list(
+        db_session.scalars(
+            select(OrderEvent)
+            .where(OrderEvent.order_id == order.id)
+            .order_by(OrderEvent.id.asc())
+        ).all()
+    )
+
+    assert [event.event_type for event in events] == [
+        "order_created",
+        "inventory_reserved",
+    ]
 
 
 def test_order_history_returns_only_current_users_orders(
@@ -154,6 +176,7 @@ def test_order_history_returns_only_current_users_orders(
 
     assert len(first_history) == 1
     assert first_history[0]["id"] == created.json()["id"]
+    assert first_history[0]["order_number"] == created.json()["order_number"]
 
     client.cookies.clear()
 
@@ -475,6 +498,7 @@ def test_create_order_api_replays_same_key_without_consuming_inventory_twice(
     assert second.status_code == 201
 
     assert second.json()["id"] == first.json()["id"]
+    assert second.json()["order_number"] == first.json()["order_number"]
 
     db_session.refresh(offer)
 

@@ -195,10 +195,7 @@ export default function OrderHistory() {
             <div className="flex flex-col gap-4 border-b border-neutral-200 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
               <div>
                 <p className="font-mono text-xs text-neutral-500">
-                  #
-                  {order.id
-                    .slice(0, 8)
-                    .toUpperCase()}
+                  {order.order_number}
                 </p>
 
                 <p className="mt-2 text-sm text-neutral-600">

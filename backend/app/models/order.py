@@ -5,16 +5,24 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
 from app.db.base import Base
 
@@ -35,6 +43,10 @@ class Order(Base):
             name="ck_orders_total_nonnegative",
         ),
         UniqueConstraint(
+            "order_number",
+            name="uq_orders_order_number",
+        ),
+        UniqueConstraint(
             "user_id",
             "idempotency_key",
             name="uq_orders_user_id_idempotency_key",
@@ -45,6 +57,11 @@ class Order(Base):
         Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
+    )
+
+    order_number: Mapped[str] = mapped_column(
+        String(24),
+        nullable=False,
     )
 
     user_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -108,6 +125,12 @@ class Order(Base):
         passive_deletes=True,
     )
 
+    events: Mapped[list[OrderEvent]] = relationship(
+        back_populates="order",
+        passive_deletes=True,
+        order_by="OrderEvent.id",
+    )
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -115,11 +138,11 @@ class OrderItem(Base):
     __table_args__ = (
         CheckConstraint(
             "quantity > 0",
-            name="ck_order_items_quantity_positive",
+            name=("ck_order_items_quantity_positive"),
         ),
         CheckConstraint(
             "unit_price_cents >= 0",
-            name="ck_order_items_price_nonnegative",
+            name=("ck_order_items_price_nonnegative"),
         ),
     )
 
@@ -184,3 +207,67 @@ class OrderItem(Base):
     )
 
     offer: Mapped[ProductOffer] = relationship()
+
+
+class OrderEvent(Base):
+    __tablename__ = "order_events"
+
+    __table_args__ = (
+        Index(
+            "ix_order_events_order_id_id",
+            "order_id",
+            "id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        BigInteger,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey(
+            "orders.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+
+    event_type: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    actor_type: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+    )
+
+    actor_id: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+    )
+
+    source: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    event_data: Mapped[dict[str, object]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=dict,
+        server_default=text("'{}'::jsonb"),
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    order: Mapped[Order] = relationship(
+        back_populates="events",
+    )

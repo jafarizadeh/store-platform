@@ -10,6 +10,7 @@ export type OrderItem = {
 
 export type CustomerOrder = {
   id: string;
+  order_number: string;
   status: string;
   currency: string;
   total_cents: number;

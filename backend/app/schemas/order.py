@@ -42,6 +42,7 @@ class OrderResponse(BaseModel):
     )
 
     id: UUID
+    order_number: str
     status: str
     currency: str
     total_cents: int

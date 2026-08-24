@@ -1,10 +1,44 @@
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import (
+    Sequence,
+    func,
+    select,
+)
+from sqlalchemy.orm import (
+    Session,
+    selectinload,
+)
 
-from app.domain.order import OrderLineSnapshot
-from app.models.order import Order, OrderItem
+from app.domain.order import (
+    OrderLineSnapshot,
+)
+from app.models.order import (
+    Order,
+    OrderItem,
+)
+
+ORDER_NUMBER_SEQUENCE = Sequence("order_number_seq")
+
+
+def next_order_number(
+    db: Session,
+) -> str:
+    sequence_value = db.scalar(select(ORDER_NUMBER_SEQUENCE.next_value()))
+
+    year = db.scalar(
+        select(
+            func.to_char(
+                func.current_date(),
+                "YYYY",
+            )
+        )
+    )
+
+    if sequence_value is None or year is None:
+        raise RuntimeError("Could not allocate order number.")
+
+    return f"BY-{year}-{sequence_value:08d}"
 
 
 def create_order(
@@ -18,9 +52,10 @@ def create_order(
     lines: list[OrderLineSnapshot],
 ) -> Order:
     order = Order(
+        order_number=(next_order_number(db)),
         user_id=user_id,
-        idempotency_key=idempotency_key,
-        request_fingerprint=request_fingerprint,
+        idempotency_key=(idempotency_key),
+        request_fingerprint=(request_fingerprint),
         status="pending",
         currency=currency,
         total_cents=total_cents,
@@ -29,7 +64,7 @@ def create_order(
     order.items = [
         OrderItem(
             offer_id=line.offer_id,
-            product_name=line.product_name,
+            product_name=(line.product_name),
             offer_name=line.offer_name,
             sku=line.sku,
             fulfillment_type=(line.fulfillment_type),

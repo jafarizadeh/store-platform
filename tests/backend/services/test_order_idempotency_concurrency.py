@@ -7,7 +7,7 @@ from sqlalchemy import Engine, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.core.auth_security import hash_password
-from app.models.order import Order
+from app.models.order import Order, OrderEvent
 from app.models.product import Product
 from app.models.product_offer import ProductOffer
 from app.models.user import User
@@ -126,6 +126,14 @@ def test_same_idempotency_key_is_safe_under_concurrency(
                 bind=test_engine,
                 autoflush=False,
             ) as cleanup_db:
+                cleanup_db.execute(
+                    delete(OrderEvent).where(
+                        OrderEvent.order_id.in_(
+                            select(Order.id).where(Order.user_id == user_id)
+                        )
+                    )
+                )
+
                 cleanup_db.execute(delete(Order).where(Order.user_id == user_id))
 
                 if offer_id is not None:

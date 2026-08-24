@@ -11,7 +11,15 @@ from app.domain.order_errors import (
     MixedCurrencyError,
     OrderQuantityLimitError,
 )
+from app.domain.order_event import (
+    OrderActorType,
+    OrderEventSource,
+    OrderEventType,
+)
 from app.models.order import Order
+from app.repositories.order_event_repository import (
+    append_order_event,
+)
 from app.repositories.order_repository import (
     create_order,
     get_order_by_idempotency_key,
@@ -152,6 +160,38 @@ def create_pending_order(
             currency=currency,
             total_cents=total_cents,
             lines=lines,
+        )
+
+        append_order_event(
+            db,
+            order_id=order.id,
+            event_type=(OrderEventType.ORDER_CREATED),
+            actor_type=(OrderActorType.CUSTOMER),
+            actor_id=str(user_id),
+            source=(OrderEventSource.CHECKOUT),
+            event_data={
+                "status": order.status,
+                "currency": order.currency,
+                "total_cents": (order.total_cents),
+            },
+        )
+
+        append_order_event(
+            db,
+            order_id=order.id,
+            event_type=(OrderEventType.INVENTORY_RESERVED),
+            actor_type=(OrderActorType.SYSTEM),
+            actor_id=None,
+            source=(OrderEventSource.ORDER_SERVICE),
+            event_data={
+                "items": [
+                    {
+                        "offer_id": offer_id,
+                        "quantity": quantity,
+                    }
+                    for offer_id, quantity in sorted(requested_quantities.items())
+                ]
+            },
         )
 
         db.commit()

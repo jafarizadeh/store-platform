@@ -3,6 +3,10 @@ from app.models.order import (
     OrderEvent,
     OrderItem,
 )
+from app.models.payment import (
+    Payment,
+    PaymentAttempt,
+)
 from app.models.product import Product
 from app.models.product_image import (
     ProductImage,
@@ -19,6 +23,8 @@ __all__ = [
     "Order",
     "OrderEvent",
     "OrderItem",
+    "Payment",
+    "PaymentAttempt",
     "Product",
     "ProductImage",
     "ProductOffer",

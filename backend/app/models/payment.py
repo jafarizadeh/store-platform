@@ -13,6 +13,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -121,6 +122,12 @@ class PaymentAttempt(Base):
             "payment_id",
             "created_at",
         ),
+        Index(
+            "uq_payment_attempts_one_unresolved_per_payment",
+            "payment_id",
+            unique=True,
+            postgresql_where=text("status IN ('created', 'pending')"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -157,6 +164,11 @@ class PaymentAttempt(Base):
 
     provider_reference: Mapped[str | None] = mapped_column(
         String(200),
+        nullable=True,
+    )
+
+    approval_url: Mapped[str | None] = mapped_column(
+        String(2000),
         nullable=True,
     )
 

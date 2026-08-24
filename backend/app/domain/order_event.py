@@ -18,4 +18,5 @@ class OrderEventSource(StrEnum):
     CHECKOUT = "checkout"
     MIGRATION = "migration"
     ORDER_SERVICE = "order_service"
+    PAYMENT_SERVICE = "payment_service"
     RESERVATION_EXPIRY = "reservation_expiry"

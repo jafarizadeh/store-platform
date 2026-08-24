@@ -297,6 +297,33 @@ def expire_due_pending_orders(
             db.commit()
             return 0
 
+        # Critical payment/expiry race boundary:
+        #
+        # The Order rows above are already locked.
+        # Re-read payment state now, inside the same
+        # transaction, before releasing inventory.
+        #
+        # CREATED is externally ambiguous: the provider
+        # may have accepted a request whose response was
+        # lost.
+        #
+        # PENDING is also externally unresolved: customer
+        # or provider confirmation may still succeed.
+        from app.repositories.payment_repository import (
+            get_order_ids_with_unresolved_payment_attempts,
+        )
+
+        protected_order_ids = get_order_ids_with_unresolved_payment_attempts(
+            db,
+            order_ids=[order.id for order in orders],
+        )
+
+        orders = [order for order in orders if order.id not in protected_order_ids]
+
+        if not orders:
+            db.commit()
+            return 0
+
         released_quantities: dict[
             int,
             int,

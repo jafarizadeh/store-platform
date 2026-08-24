@@ -18,7 +18,11 @@ from app.core.auth_security import (
 from app.domain.order_state import (
     OrderStatus,
 )
+from app.domain.payment import (
+    PaymentAttemptStatus,
+)
 from app.domain.payment_errors import (
+    PaymentAttemptAlreadyActiveError,
     PaymentAttemptIdempotencyConflictError,
     PaymentOrderNotPayableError,
     PaymentOrderUnavailableError,
@@ -294,3 +298,95 @@ def test_attempt_key_cannot_switch_provider(
             provider="bank",
             idempotency_key=key,
         )
+
+
+def test_different_attempt_key_is_rejected_while_unresolved(
+    db_session: Session,
+) -> None:
+    order_id, user_id, _, _ = _pending_order(db_session)
+
+    payment = prepare_payment(
+        db_session,
+        order_id=order_id,
+        user_id=user_id,
+    )
+
+    first = prepare_payment_attempt(
+        db_session,
+        payment_id=payment.id,
+        user_id=user_id,
+        provider="paypal",
+        idempotency_key=(f"attempt-{uuid4().hex}"),
+    )
+
+    with pytest.raises(PaymentAttemptAlreadyActiveError) as error:
+        prepare_payment_attempt(
+            db_session,
+            payment_id=payment.id,
+            user_id=user_id,
+            provider="paypal",
+            idempotency_key=(f"attempt-{uuid4().hex}"),
+        )
+
+    assert error.value.payment_id == payment.id
+    assert error.value.attempt_id == first.id
+    assert error.value.current_status == PaymentAttemptStatus.CREATED.value
+
+    attempts = list(
+        db_session.scalars(
+            select(PaymentAttempt).where(PaymentAttempt.payment_id == payment.id)
+        ).all()
+    )
+
+    assert len(attempts) == 1
+
+
+@pytest.mark.parametrize(
+    "terminal_status",
+    [
+        PaymentAttemptStatus.FAILED,
+        PaymentAttemptStatus.CANCELLED,
+    ],
+)
+def test_terminal_attempt_allows_new_attempt(
+    db_session: Session,
+    terminal_status: PaymentAttemptStatus,
+) -> None:
+    order_id, user_id, _, _ = _pending_order(db_session)
+
+    payment = prepare_payment(
+        db_session,
+        order_id=order_id,
+        user_id=user_id,
+    )
+
+    first = prepare_payment_attempt(
+        db_session,
+        payment_id=payment.id,
+        user_id=user_id,
+        provider="paypal",
+        idempotency_key=(f"attempt-{uuid4().hex}"),
+    )
+
+    first.status = terminal_status.value
+    db_session.commit()
+
+    second = prepare_payment_attempt(
+        db_session,
+        payment_id=payment.id,
+        user_id=user_id,
+        provider="paypal",
+        idempotency_key=(f"attempt-{uuid4().hex}"),
+    )
+
+    assert second.id != first.id
+
+    assert second.status == PaymentAttemptStatus.CREATED.value
+
+    attempts = list(
+        db_session.scalars(
+            select(PaymentAttempt).where(PaymentAttempt.payment_id == payment.id)
+        ).all()
+    )
+
+    assert len(attempts) == 2

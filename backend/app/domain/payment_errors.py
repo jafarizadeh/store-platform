@@ -30,6 +30,16 @@ class PaymentOrderNotPayableError(PaymentDomainError):
         super().__init__("Order cannot be paid.")
 
 
+class PaymentAttemptNotFoundError(PaymentDomainError):
+    def __init__(
+        self,
+        attempt_id: UUID,
+    ) -> None:
+        self.attempt_id = attempt_id
+
+        super().__init__("Payment attempt was not found.")
+
+
 class PaymentNotFoundError(PaymentDomainError):
     def __init__(
         self,
@@ -63,3 +73,30 @@ class InvalidPaymentIdempotencyKeyError(PaymentDomainError):
 
 class PaymentAttemptIdempotencyConflictError(PaymentDomainError):
     """Raised when one attempt key is reused for another provider."""
+
+
+class PaymentAttemptAlreadyActiveError(PaymentDomainError):
+    def __init__(
+        self,
+        *,
+        payment_id: UUID,
+        attempt_id: UUID,
+        current_status: str,
+    ) -> None:
+        self.payment_id = payment_id
+        self.attempt_id = attempt_id
+        self.current_status = current_status
+
+        super().__init__("Payment already has an unresolved attempt.")
+
+
+class PaymentProviderUnavailableError(PaymentDomainError):
+    """Provider call failed with an ambiguous external result."""
+
+
+class InvalidPaymentProviderResultError(PaymentDomainError):
+    """Provider returned an unsupported or malformed initiation result."""
+
+
+class PaymentProviderResultConflictError(PaymentDomainError):
+    """A retry returned data conflicting with the stored provider result."""

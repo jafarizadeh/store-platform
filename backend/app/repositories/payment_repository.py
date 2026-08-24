@@ -46,7 +46,14 @@ def get_payment_for_update(
     *,
     payment_id: UUID,
 ) -> Payment | None:
-    statement = select(Payment).where(Payment.id == payment_id).with_for_update()
+    statement = (
+        select(Payment)
+        .where(Payment.id == payment_id)
+        .with_for_update()
+        .execution_options(
+            populate_existing=True,
+        )
+    )
 
     return db.scalar(statement)
 
@@ -85,6 +92,74 @@ def get_payment_attempt_by_key(
     return db.scalar(statement)
 
 
+def get_unresolved_payment_attempt(
+    db: Session,
+    *,
+    payment_id: UUID,
+) -> PaymentAttempt | None:
+    statement = (
+        select(PaymentAttempt)
+        .where(
+            PaymentAttempt.payment_id == payment_id,
+            PaymentAttempt.status.in_(
+                (
+                    PaymentAttemptStatus.CREATED.value,
+                    PaymentAttemptStatus.PENDING.value,
+                )
+            ),
+        )
+        .order_by(
+            PaymentAttempt.created_at,
+            PaymentAttempt.id,
+        )
+        .limit(1)
+    )
+
+    return db.scalar(statement)
+
+
+def get_payment_attempt_with_payment(
+    db: Session,
+    *,
+    attempt_id: UUID,
+) -> PaymentAttempt | None:
+    statement = (
+        select(PaymentAttempt)
+        .options(selectinload(PaymentAttempt.payment))
+        .where(PaymentAttempt.id == attempt_id)
+    )
+
+    return db.scalar(statement)
+
+
+def get_payment_attempt_by_id(
+    db: Session,
+    *,
+    attempt_id: UUID,
+) -> PaymentAttempt | None:
+    return db.get(
+        PaymentAttempt,
+        attempt_id,
+    )
+
+
+def get_payment_attempt_for_update(
+    db: Session,
+    *,
+    attempt_id: UUID,
+) -> PaymentAttempt | None:
+    statement = (
+        select(PaymentAttempt)
+        .where(PaymentAttempt.id == attempt_id)
+        .with_for_update()
+        .execution_options(
+            populate_existing=True,
+        )
+    )
+
+    return db.scalar(statement)
+
+
 def create_payment_attempt(
     db: Session,
     *,
@@ -103,3 +178,32 @@ def create_payment_attempt(
     db.flush()
 
     return attempt
+
+
+def get_order_ids_with_unresolved_payment_attempts(
+    db: Session,
+    *,
+    order_ids: list[UUID],
+) -> set[UUID]:
+    if not order_ids:
+        return set()
+
+    statement = (
+        select(Payment.order_id)
+        .join(
+            PaymentAttempt,
+            PaymentAttempt.payment_id == Payment.id,
+        )
+        .where(
+            Payment.order_id.in_(order_ids),
+            PaymentAttempt.status.in_(
+                (
+                    PaymentAttemptStatus.CREATED.value,
+                    PaymentAttemptStatus.PENDING.value,
+                )
+            ),
+        )
+        .distinct()
+    )
+
+    return set(db.scalars(statement).all())

@@ -111,6 +111,9 @@ def get_order_for_update(
         .options(selectinload(Order.items))
         .where(Order.id == order_id)
         .with_for_update()
+        .execution_options(
+            populate_existing=True,
+        )
     )
 
     return db.scalar(statement)

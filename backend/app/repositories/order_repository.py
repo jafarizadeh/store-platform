@@ -98,6 +98,21 @@ def get_order_by_idempotency_key(
     return db.scalar(statement)
 
 
+def get_order_for_update(
+    db: Session,
+    *,
+    order_id: UUID,
+) -> Order | None:
+    statement = (
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.id == order_id)
+        .with_for_update()
+    )
+
+    return db.scalar(statement)
+
+
 def list_orders_for_user(
     db: Session,
     user_id: UUID,

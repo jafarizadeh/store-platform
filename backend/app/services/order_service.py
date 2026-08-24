@@ -8,13 +8,19 @@ from sqlalchemy.orm import Session
 from app.domain.order import OrderLineSnapshot
 from app.domain.order_errors import (
     IdempotencyConflictError,
+    InvalidOrderTransitionError,
     MixedCurrencyError,
+    OrderNotFoundError,
     OrderQuantityLimitError,
 )
 from app.domain.order_event import (
     OrderActorType,
     OrderEventSource,
     OrderEventType,
+)
+from app.domain.order_state import (
+    OrderStatus,
+    is_order_transition_allowed,
 )
 from app.models.order import Order
 from app.repositories.order_event_repository import (
@@ -23,6 +29,7 @@ from app.repositories.order_event_repository import (
 from app.repositories.order_repository import (
     create_order,
     get_order_by_idempotency_key,
+    get_order_for_update,
     list_orders_for_user,
 )
 from app.repositories.user_repository import (
@@ -191,6 +198,61 @@ def create_pending_order(
                     }
                     for offer_id, quantity in sorted(requested_quantities.items())
                 ]
+            },
+        )
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return order
+
+
+def transition_order_status(
+    db: Session,
+    *,
+    order_id: UUID,
+    target_status: OrderStatus,
+    actor_type: OrderActorType = (OrderActorType.SYSTEM),
+    actor_id: str | None = None,
+    source: OrderEventSource = (OrderEventSource.ORDER_SERVICE),
+) -> Order:
+    try:
+        order = get_order_for_update(
+            db,
+            order_id=order_id,
+        )
+
+        if order is None:
+            raise OrderNotFoundError(order_id)
+
+        current_status = OrderStatus(order.status)
+
+        if not is_order_transition_allowed(
+            current_status,
+            target_status,
+        ):
+            raise (
+                InvalidOrderTransitionError(
+                    current_status=(current_status.value),
+                    target_status=(target_status.value),
+                )
+            )
+
+        order.status = target_status.value
+
+        append_order_event(
+            db,
+            order_id=order.id,
+            event_type=(OrderEventType.ORDER_STATUS_CHANGED),
+            actor_type=actor_type,
+            actor_id=actor_id,
+            source=source,
+            event_data={
+                "from_status": (current_status.value),
+                "to_status": (target_status.value),
             },
         )
 

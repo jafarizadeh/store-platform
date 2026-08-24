@@ -1,3 +1,6 @@
+from uuid import UUID
+
+
 class OrderDomainError(Exception):
     """Base class for expected order-domain failures."""
 
@@ -57,3 +60,28 @@ class OrderQuantityLimitError(OrderDomainError):
 
 class IdempotencyConflictError(OrderDomainError):
     """Raised when one key is reused for a different order request."""
+
+
+class OrderNotFoundError(OrderDomainError):
+    def __init__(
+        self,
+        order_id: UUID,
+    ) -> None:
+        self.order_id = order_id
+
+        super().__init__(f"Order {order_id} was not found.")
+
+
+class InvalidOrderTransitionError(OrderDomainError):
+    def __init__(
+        self,
+        *,
+        current_status: str,
+        target_status: str,
+    ) -> None:
+        self.current_status = current_status
+        self.target_status = target_status
+
+        super().__init__(
+            f"Invalid order status transition: {current_status} -> {target_status}."
+        )

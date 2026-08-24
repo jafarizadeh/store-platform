@@ -35,7 +35,7 @@ class Order(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('pending', 'paid', 'cancelled', 'refunded')",
+            "status IN ('pending', 'paid', 'cancelled', 'expired', 'refunded')",
             name="ck_orders_valid_status",
         ),
         CheckConstraint(

@@ -1,11 +1,19 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.product import Product
+from app.repositories.catalog_repository import (
+    get_active_product_by_slug,
+    list_active_products,
+)
 from app.schemas.product import ProductResponse
 
 router = APIRouter(
@@ -32,6 +40,13 @@ def list_products(
             max_length=80,
         ),
     ] = None,
+    product_type: Annotated[
+        str | None,
+        Query(
+            min_length=1,
+            max_length=20,
+        ),
+    ] = None,
     limit: Annotated[
         int,
         Query(
@@ -46,18 +61,13 @@ def list_products(
         ),
     ] = 0,
 ):
-    statement = (
-        select(Product)
-        .where(Product.is_active.is_(True))
-        .order_by(Product.id)
-        .limit(limit)
-        .offset(offset)
+    return list_active_products(
+        db,
+        category=category,
+        product_type=product_type,
+        limit=limit,
+        offset=offset,
     )
-
-    if category is not None:
-        statement = statement.where(Product.category == category)
-
-    return list(db.scalars(statement).all())
 
 
 @router.get(
@@ -74,12 +84,10 @@ def get_product(
             detail="Product not found",
         )
 
-    statement = select(Product).where(
-        Product.slug == slug,
-        Product.is_active.is_(True),
+    product = get_active_product_by_slug(
+        db,
+        slug,
     )
-
-    product = db.scalar(statement)
 
     if product is None:
         raise HTTPException(

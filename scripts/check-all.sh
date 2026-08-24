@@ -79,14 +79,17 @@ terminal_width() {
 
 horizontal_rule() {
     local width
+    local line
+
     width="$(terminal_width)"
 
-    printf '%*s\n' "${width}" '' | tr ' ' '─'
+    printf -v line '%*s' "${width}" ''
+    line="${line// /─}"
+
+    printf '%s\n' "${line}"
 }
 
 print_header() {
-    clear 2>/dev/null || true
-
     printf '\n'
     printf '%s%s╭────────────────────────────────────────────────────╮%s\n' \
         "${BOLD}" "${CYAN}" "${RESET}"

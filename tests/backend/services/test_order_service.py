@@ -1,0 +1,339 @@
+from uuid import UUID, uuid4
+
+import pytest
+from factories.catalog import create_product_offer
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.core.auth_security import hash_password
+from app.domain.order_errors import (
+    InsufficientStockError,
+    MixedCurrencyError,
+    OrderQuantityLimitError,
+)
+from app.models.order import Order, OrderItem
+from app.models.user import User
+from app.schemas.order import (
+    OrderCreate,
+    OrderItemCreate,
+)
+from app.services.order_service import (
+    create_pending_order,
+)
+
+TEST_CREDENTIAL_HASH = hash_password("order-" + "service-test-credential")
+
+
+def _idempotency_key() -> str:
+    return f"service-{uuid4().hex}"
+
+
+def _create_user(
+    db_session: Session,
+    *,
+    email: str,
+) -> UUID:
+    user = User(
+        email=email,
+        password_hash=TEST_CREDENTIAL_HASH,
+    )
+
+    db_session.add(user)
+    db_session.flush()
+
+    user_id = user.id
+
+    db_session.commit()
+
+    return user_id
+
+
+def test_create_pending_order_uses_server_offer_prices(
+    db_session: Session,
+) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-prices@example.com",
+    )
+
+    _, first = create_product_offer(
+        db_session,
+        slug="order-first",
+        price_cents=1200,
+        stock_quantity=10,
+    )
+
+    _, second = create_product_offer(
+        db_session,
+        slug="order-second",
+        price_cents=500,
+        stock_quantity=10,
+    )
+
+    db_session.commit()
+
+    order = create_pending_order(
+        db_session,
+        OrderCreate(
+            items=[
+                OrderItemCreate(
+                    offer_id=first.id,
+                    quantity=2,
+                ),
+                OrderItemCreate(
+                    offer_id=second.id,
+                    quantity=3,
+                ),
+            ]
+        ),
+        user_id=user_id,
+        idempotency_key=_idempotency_key(),
+    )
+
+    assert order.user_id == user_id
+    assert order.status == "pending"
+    assert order.currency == "EUR"
+    assert order.total_cents == 3900
+
+    assert first.stock_quantity == 8
+    assert second.stock_quantity == 7
+
+
+def test_create_pending_order_aggregates_duplicate_offers(
+    db_session: Session,
+) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-duplicate@example.com",
+    )
+
+    _, offer = create_product_offer(
+        db_session,
+        slug="order-duplicate",
+        price_cents=750,
+        stock_quantity=10,
+    )
+
+    db_session.commit()
+
+    order = create_pending_order(
+        db_session,
+        OrderCreate(
+            items=[
+                OrderItemCreate(
+                    offer_id=offer.id,
+                    quantity=2,
+                ),
+                OrderItemCreate(
+                    offer_id=offer.id,
+                    quantity=3,
+                ),
+            ]
+        ),
+        user_id=user_id,
+        idempotency_key=_idempotency_key(),
+    )
+
+    assert len(order.items) == 1
+    assert order.items[0].quantity == 5
+    assert order.total_cents == 3750
+    assert offer.stock_quantity == 5
+
+
+def test_create_pending_order_snapshots_catalog_data(
+    db_session: Session,
+) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-snapshot@example.com",
+    )
+
+    product, offer = create_product_offer(
+        db_session,
+        slug="order-snapshot",
+        product_name="Original Product",
+        offer_name="Complete Kit",
+        sku="snapshot-kit",
+        fulfillment_type="physical",
+        price_cents=1999,
+    )
+
+    db_session.commit()
+
+    order = create_pending_order(
+        db_session,
+        OrderCreate(
+            items=[
+                OrderItemCreate(
+                    offer_id=offer.id,
+                    quantity=1,
+                )
+            ]
+        ),
+        user_id=user_id,
+        idempotency_key=_idempotency_key(),
+    )
+
+    item = order.items[0]
+
+    assert item.product_name == product.name
+    assert item.offer_name == "Complete Kit"
+    assert item.sku == "snapshot-kit"
+    assert item.fulfillment_type == "physical"
+    assert item.unit_price_cents == 1999
+
+
+def test_mixed_currency_rolls_back_inventory(
+    db_session: Session,
+) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-currency@example.com",
+    )
+
+    _, eur_offer = create_product_offer(
+        db_session,
+        slug="order-eur",
+        currency="EUR",
+        stock_quantity=5,
+    )
+
+    _, usd_offer = create_product_offer(
+        db_session,
+        slug="order-usd",
+        currency="USD",
+        stock_quantity=5,
+    )
+
+    db_session.commit()
+
+    request = OrderCreate(
+        items=[
+            OrderItemCreate(
+                offer_id=eur_offer.id,
+                quantity=1,
+            ),
+            OrderItemCreate(
+                offer_id=usd_offer.id,
+                quantity=1,
+            ),
+        ]
+    )
+
+    with pytest.raises(MixedCurrencyError):
+        create_pending_order(
+            db_session,
+            request,
+            user_id=user_id,
+            idempotency_key=_idempotency_key(),
+        )
+
+    db_session.expire_all()
+
+    assert eur_offer.stock_quantity == 5
+    assert usd_offer.stock_quantity == 5
+
+    matching_order_ids = set(
+        db_session.scalars(
+            select(Order.id)
+            .join(Order.items)
+            .where(
+                OrderItem.offer_id.in_(
+                    {
+                        eur_offer.id,
+                        usd_offer.id,
+                    }
+                )
+            )
+        ).all()
+    )
+
+    assert matching_order_ids == set()
+
+
+def test_insufficient_stock_does_not_create_order(
+    db_session: Session,
+) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-stock@example.com",
+    )
+
+    _, offer = create_product_offer(
+        db_session,
+        slug="order-no-stock",
+        stock_quantity=1,
+    )
+
+    db_session.commit()
+
+    with pytest.raises(InsufficientStockError):
+        create_pending_order(
+            db_session,
+            OrderCreate(
+                items=[
+                    OrderItemCreate(
+                        offer_id=offer.id,
+                        quantity=2,
+                    )
+                ]
+            ),
+            user_id=user_id,
+            idempotency_key=_idempotency_key(),
+        )
+
+    matching_order_ids = set(
+        db_session.scalars(
+            select(Order.id).join(Order.items).where(OrderItem.offer_id == offer.id)
+        ).all()
+    )
+
+    assert matching_order_ids == set()
+
+
+def test_aggregate_quantity_limit_is_enforced_before_inventory(
+    db_session: Session,
+) -> None:
+    user_id = _create_user(
+        db_session,
+        email="order-limit@example.com",
+    )
+
+    _, offer = create_product_offer(
+        db_session,
+        slug="order-limit",
+        stock_quantity=200,
+    )
+
+    db_session.commit()
+
+    with pytest.raises(OrderQuantityLimitError) as exc_info:
+        create_pending_order(
+            db_session,
+            OrderCreate(
+                items=[
+                    OrderItemCreate(
+                        offer_id=offer.id,
+                        quantity=60,
+                    ),
+                    OrderItemCreate(
+                        offer_id=offer.id,
+                        quantity=50,
+                    ),
+                ]
+            ),
+            user_id=user_id,
+            idempotency_key=_idempotency_key(),
+        )
+
+    assert exc_info.value.offer_id == offer.id
+    assert exc_info.value.requested_quantity == 110
+    assert exc_info.value.max_quantity == 100
+
+    db_session.refresh(offer)
+
+    assert offer.stock_quantity == 200
+
+    matching_order = db_session.scalar(select(Order.id).where(Order.user_id == user_id))
+
+    assert matching_order is None

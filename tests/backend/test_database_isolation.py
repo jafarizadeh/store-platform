@@ -23,11 +23,10 @@ def test_session_commit_cannot_escape_test_transaction(
         slug=slug,
         name="Pytest isolation product",
         description=None,
+        product_type="component",
         category="Testing",
+        difficulty_level=None,
         image_path=None,
-        price_cents=100,
-        currency="EUR",
-        stock_quantity=1,
         is_active=True,
     )
 

@@ -1,43 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import { useCart } from "@/context/cart-context";
+import {
+  useState,
+  type MouseEvent,
+} from "react";
 
-type Props = {
-  product: {
-    slug: string;
-    name: string;
-    price: number;
-    image: string;
-  };
+import {
+  useCart,
+  type CartProduct,
+} from "@/context/cart-context";
+
+type AddToCartButtonProps = {
+  product: CartProduct;
   fullWidth?: boolean;
+  disabled?: boolean;
+  label?: string;
 };
 
 export default function AddToCartButton({
   product,
   fullWidth = false,
-}: Props) {
-  const { addItem } = useCart();
-  const [added, setAdded] = useState(false);
+  disabled = false,
+  label = "Add to cart",
+}: AddToCartButtonProps) {
+  const {
+    addItem,
+    canAddItem,
+  } = useCart();
 
-  function handleAdd() {
+  const [message, setMessage] =
+    useState<string | null>(
+      null,
+    );
+
+  const issue =
+    canAddItem(product);
+
+  const quantityBlocked =
+    issue === "quantity-limit";
+
+  function handleClick(
+    event: MouseEvent<HTMLButtonElement>,
+  ) {
+    event.preventDefault();
+
+    const currentIssue =
+      canAddItem(product);
+
+    if (
+      currentIssue ===
+      "currency-mismatch"
+    ) {
+      setMessage(
+        "Cart items must use the same currency.",
+      );
+      return;
+    }
+
+    if (
+      currentIssue ===
+      "quantity-limit"
+    ) {
+      setMessage(
+        "Maximum available quantity reached.",
+      );
+      return;
+    }
+
     addItem(product);
-    setAdded(true);
-
-    window.setTimeout(() => {
-      setAdded(false);
-    }, 900);
+    setMessage("Added to cart.");
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleAdd}
-      className={`rounded-full bg-neutral-950 px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 ${
+    <div
+      className={
         fullWidth ? "w-full" : ""
-      }`}
+      }
     >
-      {added ? "Added ✓" : "Add to Cart"}
-    </button>
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={
+          disabled ||
+          quantityBlocked
+        }
+        className={[
+          "rounded-full bg-neutral-950 px-6 py-3 text-sm font-semibold text-white transition",
+          "enabled:hover:bg-neutral-700",
+          "disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:text-neutral-500",
+          fullWidth
+            ? "w-full"
+            : "",
+        ].join(" ")}
+      >
+        {quantityBlocked
+          ? "Max quantity reached"
+          : label}
+      </button>
+
+      {message && (
+        <p className="mt-2 text-xs text-neutral-500">
+          {message}
+        </p>
+      )}
+    </div>
   );
 }

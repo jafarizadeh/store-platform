@@ -1,0 +1,27 @@
+product_slug,product_name,offer_name,sku,pricing_type,fulfillment_type,price_cents,currency,track_inventory,stock_quantity,position,is_active
+raspberry-pi-4-model-b,Raspberry Pi 4 Model B,4GB,BYN-RPI4-4GB,fixed,physical,10590,EUR,true,4,0,true
+raspberry-pi-5,Raspberry Pi 5,8GB,BYN-RPI5-8GB,fixed,physical,18490,EUR,true,5,0,true
+raspberry-pi-500,Raspberry Pi 500,Standard,BYN-RPI500,fixed,physical,19990,EUR,true,3,0,true
+raspberry-pi-pico-2-w,Raspberry Pi Pico 2 W,Standard,BYN-PICO2W,fixed,physical,1090,EUR,true,20,0,true
+raspberry-pi-zero-2-w,Raspberry Pi Zero 2 W,Standard,BYN-ZERO2W,fixed,physical,2890,EUR,true,10,0,true
+raspberry-pi-camera-module-3,Raspberry Pi Camera Module 3,Standard,BYN-CAM3,fixed,physical,2890,EUR,true,8,0,true
+raspberry-pi-high-quality-camera,Raspberry Pi High Quality Camera,Standard,BYN-HQCAM,fixed,physical,5990,EUR,true,5,0,true
+zerocam-fisheye-nightvision-for-raspberry-pi,ZeroCam Fisheye NightVision for Raspberry Pi,Standard,BYN-ZEROCAM-NV,fixed,physical,2490,EUR,true,6,0,true
+4-piece-raspberry-pi-4-heatsink-set,4-Piece Raspberry Pi 4 Heatsink Set,4-Piece Set,BYN-RPI4-HS4,fixed,physical,190,EUR,true,25,0,true
+active-cooler-for-raspberry-pi-5,Active Cooler for Raspberry Pi 5,Standard,BYN-RPI5-ACOOL,fixed,physical,590,EUR,true,15,0,true
+argon-thrml-30mm-active-cooler-for-raspberry-pi-5,Argon THRML 30mm Active Cooler for Raspberry Pi 5,30mm,BYN-ARGON-THRML30,fixed,physical,1990,EUR,true,8,0,true
+argon-thrml-60mm-radiator-cooler-for-raspberry-pi-5,Argon THRML 60mm Radiator Cooler for Raspberry Pi 5,60mm,BYN-ARGON-THRML60,fixed,physical,2990,EUR,true,6,0,true
+ice-tower-cpu-cooler-for-raspberry-pi-5,ICE Tower CPU Cooler for Raspberry Pi 5,Standard,BYN-ICE-TOWER-RPI5,fixed,physical,2290,EUR,true,8,0,true
+car-kit-for-raspberry-pi,Car Kit for Raspberry Pi,Complete Kit,BYN-CAR-KIT,fixed,physical,6990,EUR,true,4,0,true
+dog-kit-for-raspberry-pi,Dog Kit for Raspberry Pi,Complete Kit,BYN-DOG-KIT,fixed,physical,17990,EUR,true,2,0,true
+tank-robot-kit-for-raspberry-pi,Tank Robot Kit for Raspberry Pi,Complete Kit,BYN-TANK-KIT,fixed,physical,13990,EUR,true,3,0,true
+three-wheeled-smart-car-kit-for-raspberry-pi,Three-Wheeled Smart Car Kit for Raspberry Pi,Complete Kit,BYN-3W-CAR-KIT,fixed,physical,5990,EUR,true,5,0,true
+capacitive-soil-moisture-sensor,Capacitive Soil Moisture Sensor,Standard,BYN-SOIL-CAP,fixed,physical,390,EUR,true,20,0,true
+ir-break-beam-sensor-5mm-leds,IR Break Beam Sensor - 5mm LEDs,5mm,BYN-IR-BREAK-5,fixed,physical,690,EUR,true,15,0,true
+mini-pir-motion-sensor,Mini PIR Motion Sensor,Standard,BYN-MINI-PIR,fixed,physical,490,EUR,true,20,0,true
+ozone-sensor-mq131-breakout,Ozone Sensor MQ131 Breakout,MQ131,BYN-MQ131,fixed,physical,2490,EUR,true,8,0,true
+pir-motion-sensor-module,PIR Motion Sensor Module,Standard,BYN-PIR-MODULE,fixed,physical,390,EUR,true,20,0,true
+soil-moisture-sensor-kit,Soil Moisture Sensor Kit,Complete Kit,BYN-SOIL-KIT,fixed,physical,690,EUR,true,15,0,true
+ultrasonic-distance-sensor-hc-sr04,Ultrasonic Distance Sensor (HC-SR04),HC-SR04,BYN-HCSR04,fixed,physical,149,EUR,true,30,0,true
+voltage-current-sensor-ina219-breakout,Voltage & Current Sensor INA219 Breakout,INA219,BYN-INA219,fixed,physical,1090,EUR,true,12,0,true
+waterproof-ds18b20-compatible-temperature-sensor,Waterproof DS18B20-Compatible Temperature Sensor with Resistor,Waterproof,BYN-DS18B20-WP,fixed,physical,690,EUR,true,15,0,true

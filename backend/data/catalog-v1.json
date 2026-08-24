@@ -1,0 +1,926 @@
+[
+  {
+    "name": "Raspberry Pi 4 Model B",
+    "slug": "raspberry-pi-4-model-b",
+    "description": "",
+    "product_type": "component",
+    "category": "Raspberry Pi",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-4-model-b/01.webp",
+        "alt_text": "Raspberry Pi 4 Model B",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-4-model-b/02.webp",
+        "alt_text": "Raspberry Pi 4 Model B - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-4-model-b/03.webp",
+        "alt_text": "Raspberry Pi 4 Model B - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-4-model-b/04.webp",
+        "alt_text": "Raspberry Pi 4 Model B - image 4",
+        "position": 3,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-4-model-b/05.webp",
+        "alt_text": "Raspberry Pi 4 Model B - image 5",
+        "position": 4,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-4-model-b/06.webp",
+        "alt_text": "Raspberry Pi 4 Model B - image 6",
+        "position": 5,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Raspberry Pi 5",
+    "slug": "raspberry-pi-5",
+    "description": "",
+    "product_type": "component",
+    "category": "Raspberry Pi",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/01.webp",
+        "alt_text": "Raspberry Pi 5",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/02.webp",
+        "alt_text": "Raspberry Pi 5 - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/03.webp",
+        "alt_text": "Raspberry Pi 5 - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/04.webp",
+        "alt_text": "Raspberry Pi 5 - image 4",
+        "position": 3,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/05.webp",
+        "alt_text": "Raspberry Pi 5 - image 5",
+        "position": 4,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/06.webp",
+        "alt_text": "Raspberry Pi 5 - image 6",
+        "position": 5,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/07.webp",
+        "alt_text": "Raspberry Pi 5 - image 7",
+        "position": 6,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/08.webp",
+        "alt_text": "Raspberry Pi 5 - image 8",
+        "position": 7,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/09.webp",
+        "alt_text": "Raspberry Pi 5 - image 9",
+        "position": 8,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-5/10.webp",
+        "alt_text": "Raspberry Pi 5 - image 10",
+        "position": 9,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Raspberry Pi 500",
+    "slug": "raspberry-pi-500",
+    "description": "",
+    "product_type": "component",
+    "category": "Raspberry Pi",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-500/01.webp",
+        "alt_text": "Raspberry Pi 500",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-500/02.webp",
+        "alt_text": "Raspberry Pi 500 - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-500/03.webp",
+        "alt_text": "Raspberry Pi 500 - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-500/04.webp",
+        "alt_text": "Raspberry Pi 500 - image 4",
+        "position": 3,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-500/05.webp",
+        "alt_text": "Raspberry Pi 500 - image 5",
+        "position": 4,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-500/06.webp",
+        "alt_text": "Raspberry Pi 500 - image 6",
+        "position": 5,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-500/07.webp",
+        "alt_text": "Raspberry Pi 500 - image 7",
+        "position": 6,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Raspberry Pi Pico 2 W",
+    "slug": "raspberry-pi-pico-2-w",
+    "description": "",
+    "product_type": "component",
+    "category": "Raspberry Pi",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-pico-2-w/01.webp",
+        "alt_text": "Raspberry Pi Pico 2 W",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-pico-2-w/02.webp",
+        "alt_text": "Raspberry Pi Pico 2 W - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-pico-2-w/03.webp",
+        "alt_text": "Raspberry Pi Pico 2 W - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-pico-2-w/04.webp",
+        "alt_text": "Raspberry Pi Pico 2 W - image 4",
+        "position": 3,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-pico-2-w/05.webp",
+        "alt_text": "Raspberry Pi Pico 2 W - image 5",
+        "position": 4,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Raspberry Pi Zero 2 W",
+    "slug": "raspberry-pi-zero-2-w",
+    "description": "",
+    "product_type": "component",
+    "category": "Raspberry Pi",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-zero-2-w/01.webp",
+        "alt_text": "Raspberry Pi Zero 2 W",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-zero-2-w/02.webp",
+        "alt_text": "Raspberry Pi Zero 2 W - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-zero-2-w/03.webp",
+        "alt_text": "Raspberry Pi Zero 2 W - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-zero-2-w/04.webp",
+        "alt_text": "Raspberry Pi Zero 2 W - image 4",
+        "position": 3,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-zero-2-w/05.webp",
+        "alt_text": "Raspberry Pi Zero 2 W - image 5",
+        "position": 4,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-zero-2-w/06.webp",
+        "alt_text": "Raspberry Pi Zero 2 W - image 6",
+        "position": 5,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-zero-2-w/07.webp",
+        "alt_text": "Raspberry Pi Zero 2 W - image 7",
+        "position": 6,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/raspberry-pi/raspberry-pi-zero-2-w/08.webp",
+        "alt_text": "Raspberry Pi Zero 2 W - image 8",
+        "position": 7,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Raspberry Pi Camera Module 3",
+    "slug": "raspberry-pi-camera-module-3",
+    "description": "",
+    "product_type": "component",
+    "category": "Cameras",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/cameras/raspberry-pi-camera-module-3/01.webp",
+        "alt_text": "Raspberry Pi Camera Module 3",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/cameras/raspberry-pi-camera-module-3/02.webp",
+        "alt_text": "Raspberry Pi Camera Module 3 - image 2",
+        "position": 1,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Raspberry Pi High Quality Camera",
+    "slug": "raspberry-pi-high-quality-camera",
+    "description": "",
+    "product_type": "component",
+    "category": "Cameras",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/cameras/raspberry-pi-high-quality-camera/01.webp",
+        "alt_text": "Raspberry Pi High Quality Camera",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/cameras/raspberry-pi-high-quality-camera/02.webp",
+        "alt_text": "Raspberry Pi High Quality Camera - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cameras/raspberry-pi-high-quality-camera/03.webp",
+        "alt_text": "Raspberry Pi High Quality Camera - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cameras/raspberry-pi-high-quality-camera/04.webp",
+        "alt_text": "Raspberry Pi High Quality Camera - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "ZeroCam Fisheye NightVision for Raspberry Pi",
+    "slug": "zerocam-fisheye-nightvision-for-raspberry-pi",
+    "description": "",
+    "product_type": "component",
+    "category": "Cameras",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/cameras/zerocam-fisheye-nightvision-for-raspberry-pi/01.webp",
+        "alt_text": "ZeroCam Fisheye NightVision for Raspberry Pi",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/cameras/zerocam-fisheye-nightvision-for-raspberry-pi/02.webp",
+        "alt_text": "ZeroCam Fisheye NightVision for Raspberry Pi - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cameras/zerocam-fisheye-nightvision-for-raspberry-pi/03.webp",
+        "alt_text": "ZeroCam Fisheye NightVision for Raspberry Pi - image 3",
+        "position": 2,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "4-Piece Raspberry Pi 4 Heatsink Set",
+    "slug": "4-piece-raspberry-pi-4-heatsink-set",
+    "description": "",
+    "product_type": "component",
+    "category": "Cooling",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/cooling/4-piece-raspberry-pi-4-heatsink-set/01.webp",
+        "alt_text": "4-Piece Raspberry Pi 4 Heatsink Set",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/cooling/4-piece-raspberry-pi-4-heatsink-set/02.webp",
+        "alt_text": "4-Piece Raspberry Pi 4 Heatsink Set - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cooling/4-piece-raspberry-pi-4-heatsink-set/03.webp",
+        "alt_text": "4-Piece Raspberry Pi 4 Heatsink Set - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cooling/4-piece-raspberry-pi-4-heatsink-set/04.webp",
+        "alt_text": "4-Piece Raspberry Pi 4 Heatsink Set - image 4",
+        "position": 3,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cooling/4-piece-raspberry-pi-4-heatsink-set/05.webp",
+        "alt_text": "4-Piece Raspberry Pi 4 Heatsink Set - image 5",
+        "position": 4,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Active Cooler for Raspberry Pi 5",
+    "slug": "active-cooler-for-raspberry-pi-5",
+    "description": "",
+    "product_type": "component",
+    "category": "Cooling",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/cooling/active-cooler-for-raspberry-pi-5/01.webp",
+        "alt_text": "Active Cooler for Raspberry Pi 5",
+        "position": 0,
+        "is_primary": true
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Argon THRML 30mm Active Cooler for Raspberry Pi 5",
+    "slug": "argon-thrml-30mm-active-cooler-for-raspberry-pi-5",
+    "description": "",
+    "product_type": "component",
+    "category": "Cooling",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/cooling/argon-thrml-30mm-active-cooler-for-raspberry-pi-5/01.webp",
+        "alt_text": "Argon THRML 30mm Active Cooler for Raspberry Pi 5",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/cooling/argon-thrml-30mm-active-cooler-for-raspberry-pi-5/02.webp",
+        "alt_text": "Argon THRML 30mm Active Cooler for Raspberry Pi 5 - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cooling/argon-thrml-30mm-active-cooler-for-raspberry-pi-5/03.webp",
+        "alt_text": "Argon THRML 30mm Active Cooler for Raspberry Pi 5 - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cooling/argon-thrml-30mm-active-cooler-for-raspberry-pi-5/04.webp",
+        "alt_text": "Argon THRML 30mm Active Cooler for Raspberry Pi 5 - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Argon THRML 60mm Radiator Cooler for Raspberry Pi 5",
+    "slug": "argon-thrml-60mm-radiator-cooler-for-raspberry-pi-5",
+    "description": "",
+    "product_type": "component",
+    "category": "Cooling",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/cooling/argon-thrml-60mm-radiator-cooler-for-raspberry-pi-5/01.webp",
+        "alt_text": "Argon THRML 60mm Radiator Cooler for Raspberry Pi 5",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/cooling/argon-thrml-60mm-radiator-cooler-for-raspberry-pi-5/02.webp",
+        "alt_text": "Argon THRML 60mm Radiator Cooler for Raspberry Pi 5 - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cooling/argon-thrml-60mm-radiator-cooler-for-raspberry-pi-5/03.webp",
+        "alt_text": "Argon THRML 60mm Radiator Cooler for Raspberry Pi 5 - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cooling/argon-thrml-60mm-radiator-cooler-for-raspberry-pi-5/04.webp",
+        "alt_text": "Argon THRML 60mm Radiator Cooler for Raspberry Pi 5 - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "ICE Tower CPU Cooler for Raspberry Pi 5",
+    "slug": "ice-tower-cpu-cooler-for-raspberry-pi-5",
+    "description": "",
+    "product_type": "component",
+    "category": "Cooling",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/cooling/ice-tower-cpu-cooler-for-raspberry-pi-5/01.webp",
+        "alt_text": "ICE Tower CPU Cooler for Raspberry Pi 5",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/cooling/ice-tower-cpu-cooler-for-raspberry-pi-5/02.webp",
+        "alt_text": "ICE Tower CPU Cooler for Raspberry Pi 5 - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/cooling/ice-tower-cpu-cooler-for-raspberry-pi-5/03.webp",
+        "alt_text": "ICE Tower CPU Cooler for Raspberry Pi 5 - image 3",
+        "position": 2,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Car Kit for Raspberry Pi",
+    "slug": "car-kit-for-raspberry-pi",
+    "description": "",
+    "product_type": "kit",
+    "category": "Kits & Robotics",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/kits/car-kit-for-raspberry-pi/01.webp",
+        "alt_text": "Car Kit for Raspberry Pi",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/kits/car-kit-for-raspberry-pi/02.webp",
+        "alt_text": "Car Kit for Raspberry Pi - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/kits/car-kit-for-raspberry-pi/03.webp",
+        "alt_text": "Car Kit for Raspberry Pi - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/kits/car-kit-for-raspberry-pi/04.webp",
+        "alt_text": "Car Kit for Raspberry Pi - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Dog Kit for Raspberry Pi",
+    "slug": "dog-kit-for-raspberry-pi",
+    "description": "",
+    "product_type": "kit",
+    "category": "Kits & Robotics",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/kits/dog-kit-for-raspberry-pi/01.webp",
+        "alt_text": "Dog Kit for Raspberry Pi",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/kits/dog-kit-for-raspberry-pi/02.webp",
+        "alt_text": "Dog Kit for Raspberry Pi - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/kits/dog-kit-for-raspberry-pi/03.webp",
+        "alt_text": "Dog Kit for Raspberry Pi - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/kits/dog-kit-for-raspberry-pi/04.webp",
+        "alt_text": "Dog Kit for Raspberry Pi - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Tank Robot Kit for Raspberry Pi",
+    "slug": "tank-robot-kit-for-raspberry-pi",
+    "description": "",
+    "product_type": "kit",
+    "category": "Kits & Robotics",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/kits/tank-robot-kit-for-raspberry-pi/01.webp",
+        "alt_text": "Tank Robot Kit for Raspberry Pi",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/kits/tank-robot-kit-for-raspberry-pi/02.webp",
+        "alt_text": "Tank Robot Kit for Raspberry Pi - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/kits/tank-robot-kit-for-raspberry-pi/03.webp",
+        "alt_text": "Tank Robot Kit for Raspberry Pi - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/kits/tank-robot-kit-for-raspberry-pi/04.webp",
+        "alt_text": "Tank Robot Kit for Raspberry Pi - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Three-Wheeled Smart Car Kit for Raspberry Pi",
+    "slug": "three-wheeled-smart-car-kit-for-raspberry-pi",
+    "description": "",
+    "product_type": "kit",
+    "category": "Kits & Robotics",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/kits/three-wheeled-smart-car-kit-for-raspberry-pi/01.webp",
+        "alt_text": "Three-Wheeled Smart Car Kit for Raspberry Pi",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/kits/three-wheeled-smart-car-kit-for-raspberry-pi/02.webp",
+        "alt_text": "Three-Wheeled Smart Car Kit for Raspberry Pi - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/kits/three-wheeled-smart-car-kit-for-raspberry-pi/03.webp",
+        "alt_text": "Three-Wheeled Smart Car Kit for Raspberry Pi - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/kits/three-wheeled-smart-car-kit-for-raspberry-pi/04.webp",
+        "alt_text": "Three-Wheeled Smart Car Kit for Raspberry Pi - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Capacitive Soil Moisture Sensor",
+    "slug": "capacitive-soil-moisture-sensor",
+    "description": "",
+    "product_type": "component",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/capacitive-soil-moisture-sensor/01.webp",
+        "alt_text": "Capacitive Soil Moisture Sensor",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/sensors/capacitive-soil-moisture-sensor/02.webp",
+        "alt_text": "Capacitive Soil Moisture Sensor - image 2",
+        "position": 1,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "IR Break Beam Sensor - 5mm LEDs",
+    "slug": "ir-break-beam-sensor-5mm-leds",
+    "description": "",
+    "product_type": "component",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/ir-break-beam-sensor-5mm-leds/01.webp",
+        "alt_text": "IR Break Beam Sensor - 5mm LEDs",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/sensors/ir-break-beam-sensor-5mm-leds/02.webp",
+        "alt_text": "IR Break Beam Sensor - 5mm LEDs - image 2",
+        "position": 1,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Mini PIR Motion Sensor",
+    "slug": "mini-pir-motion-sensor",
+    "description": "",
+    "product_type": "component",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/mini-pir-motion-sensor/01.webp",
+        "alt_text": "Mini PIR Motion Sensor",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/sensors/mini-pir-motion-sensor/02.webp",
+        "alt_text": "Mini PIR Motion Sensor - image 2",
+        "position": 1,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Ozone Sensor MQ131 Breakout",
+    "slug": "ozone-sensor-mq131-breakout",
+    "description": "",
+    "product_type": "component",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/ozone-sensor-mq131-breakout/01.webp",
+        "alt_text": "Ozone Sensor MQ131 Breakout",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/sensors/ozone-sensor-mq131-breakout/02.webp",
+        "alt_text": "Ozone Sensor MQ131 Breakout - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/sensors/ozone-sensor-mq131-breakout/03.webp",
+        "alt_text": "Ozone Sensor MQ131 Breakout - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/sensors/ozone-sensor-mq131-breakout/04.webp",
+        "alt_text": "Ozone Sensor MQ131 Breakout - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "PIR Motion Sensor Module",
+    "slug": "pir-motion-sensor-module",
+    "description": "",
+    "product_type": "component",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/pir-motion-sensor-module/01.webp",
+        "alt_text": "PIR Motion Sensor Module",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/sensors/pir-motion-sensor-module/02.webp",
+        "alt_text": "PIR Motion Sensor Module - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/sensors/pir-motion-sensor-module/03.webp",
+        "alt_text": "PIR Motion Sensor Module - image 3",
+        "position": 2,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/sensors/pir-motion-sensor-module/04.webp",
+        "alt_text": "PIR Motion Sensor Module - image 4",
+        "position": 3,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Soil Moisture Sensor Kit",
+    "slug": "soil-moisture-sensor-kit",
+    "description": "",
+    "product_type": "kit",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/soil-moisture-sensor-kit/01.webp",
+        "alt_text": "Soil Moisture Sensor Kit",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/sensors/soil-moisture-sensor-kit/02.webp",
+        "alt_text": "Soil Moisture Sensor Kit - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/sensors/soil-moisture-sensor-kit/03.webp",
+        "alt_text": "Soil Moisture Sensor Kit - image 3",
+        "position": 2,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Ultrasonic Distance Sensor (HC-SR04)",
+    "slug": "ultrasonic-distance-sensor-hc-sr04",
+    "description": "",
+    "product_type": "component",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/ultrasonic-distance-sensor-hc-sr04/01.webp",
+        "alt_text": "Ultrasonic Distance Sensor (HC-SR04)",
+        "position": 0,
+        "is_primary": true
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Voltage & Current Sensor INA219 Breakout",
+    "slug": "voltage-current-sensor-ina219-breakout",
+    "description": "",
+    "product_type": "component",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/voltage-current-sensor-ina219-breakout/01.webp",
+        "alt_text": "Voltage & Current Sensor INA219 Breakout",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/sensors/voltage-current-sensor-ina219-breakout/02.webp",
+        "alt_text": "Voltage & Current Sensor INA219 Breakout - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/sensors/voltage-current-sensor-ina219-breakout/03.webp",
+        "alt_text": "Voltage & Current Sensor INA219 Breakout - image 3",
+        "position": 2,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  },
+  {
+    "name": "Waterproof DS18B20-Compatible Temperature Sensor with Resistor",
+    "slug": "waterproof-ds18b20-compatible-temperature-sensor",
+    "description": "",
+    "product_type": "component",
+    "category": "Sensors",
+    "difficulty_level": null,
+    "is_active": true,
+    "images": [
+      {
+        "image_path": "/assets/products/sensors/waterproof-ds18b20-compatible-temperature-sensor/01.webp",
+        "alt_text": "Waterproof DS18B20-Compatible Temperature Sensor with Resistor",
+        "position": 0,
+        "is_primary": true
+      },
+      {
+        "image_path": "/assets/products/sensors/waterproof-ds18b20-compatible-temperature-sensor/02.webp",
+        "alt_text": "Waterproof DS18B20-Compatible Temperature Sensor with Resistor - image 2",
+        "position": 1,
+        "is_primary": false
+      },
+      {
+        "image_path": "/assets/products/sensors/waterproof-ds18b20-compatible-temperature-sensor/03.webp",
+        "alt_text": "Waterproof DS18B20-Compatible Temperature Sensor with Resistor - image 3",
+        "position": 2,
+        "is_primary": false
+      }
+    ],
+    "offers": []
+  }
+]

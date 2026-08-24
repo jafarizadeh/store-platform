@@ -1,9 +1,26 @@
-from datetime import datetime
+from __future__ import annotations
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Integer,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.product_offer import ProductOffer
+
+if TYPE_CHECKING:
+    from app.models.product_image import ProductImage
 
 
 class Product(Base):
@@ -11,12 +28,26 @@ class Product(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "price_cents >= 0",
-            name="ck_products_price_nonnegative",
+            """
+            product_type IN (
+                'component',
+                'kit',
+                'project',
+                'solution',
+                'service'
+            )
+            """,
+            name="ck_products_product_type",
         ),
         CheckConstraint(
-            "stock_quantity >= 0",
-            name="ck_products_stock_nonnegative",
+            """
+            difficulty_level IS NULL
+            OR (
+                difficulty_level >= 1
+                AND difficulty_level <= 10
+            )
+            """,
+            name="ck_products_difficulty_level",
         ),
     )
 
@@ -43,6 +74,14 @@ class Product(Base):
         nullable=True,
     )
 
+    product_type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="component",
+        server_default="component",
+        index=True,
+    )
+
     category: Mapped[str] = mapped_column(
         String(80),
         nullable=False,
@@ -51,28 +90,14 @@ class Product(Base):
         index=True,
     )
 
-    image_path: Mapped[str | None] = mapped_column(
-        String(500),
+    difficulty_level: Mapped[int | None] = mapped_column(
+        Integer,
         nullable=True,
     )
 
-    price_cents: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
-
-    currency: Mapped[str] = mapped_column(
-        String(3),
-        nullable=False,
-        default="EUR",
-        server_default="EUR",
-    )
-
-    stock_quantity: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-        server_default="0",
+    image_path: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
     )
 
     is_active: Mapped[bool] = mapped_column(
@@ -80,6 +105,7 @@ class Product(Base):
         nullable=False,
         default=True,
         server_default="true",
+        index=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -93,4 +119,19 @@ class Product(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+    offers: Mapped[list[ProductOffer]] = relationship(
+        back_populates="product",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ProductOffer.position, ProductOffer.id",
+    )
+
+    images: Mapped[list[ProductImage]] = relationship(
+        "ProductImage",
+        back_populates="product",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ProductImage.position",
     )

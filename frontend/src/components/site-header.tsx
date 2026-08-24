@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import AccountLink from "@/components/account-link";
 import CartLink from "@/components/cart-link";
 
 export default function SiteHeader() {
@@ -21,21 +23,21 @@ export default function SiteHeader() {
           </Link>
 
           <Link
-            href="/#categories"
+            href="/shop?category=Kits%20%26%20Robotics"
             className="transition hover:text-neutral-500"
           >
             Kits
           </Link>
 
           <Link
-            href="/#categories"
+            href="/projects"
             className="transition hover:text-neutral-500"
           >
             Projects
           </Link>
 
           <Link
-            href="/#categories"
+            href="/projects"
             className="transition hover:text-neutral-500"
           >
             Solutions
@@ -49,13 +51,15 @@ export default function SiteHeader() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium transition hover:bg-neutral-100"
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/shop"
+            className="hidden rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium transition hover:bg-neutral-100 lg:inline-flex"
           >
             Search
-          </button>
+          </Link>
+
+          <AccountLink />
 
           <CartLink />
         </div>

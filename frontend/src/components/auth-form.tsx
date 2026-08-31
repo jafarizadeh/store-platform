@@ -40,6 +40,16 @@ export default function AuthForm({
     setConfirmPassword,
   ] = useState("");
 
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+
+  const [
+    showConfirmPassword,
+    setShowConfirmPassword,
+  ] = useState(false);
+
   const [error, setError] =
     useState<string | null>(null);
 
@@ -48,6 +58,16 @@ export default function AuthForm({
 
   const isRegister =
     mode === "register";
+
+  const passwordMeetsLength =
+    password.length >= 12;
+
+  const hasConfirmation =
+    confirmPassword.length > 0;
+
+  const passwordsMatch =
+    hasConfirmation &&
+    password === confirmPassword;
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -192,34 +212,77 @@ export default function AuthForm({
             Password
           </label>
 
-          <input
-            id={`${mode}-password`}
-            name="password"
-            type="password"
-            autoComplete={
-              isRegister
-                ? "new-password"
-                : "current-password"
-            }
-            required
-            minLength={
-              isRegister
-                ? 12
-                : 1
-            }
-            maxLength={128}
-            value={password}
-            onChange={(event) => {
-              setPassword(
-                event.target.value,
-              );
-            }}
-            className="mt-2 w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3.5 text-base outline-none transition focus:border-neutral-950"
-          />
+          <div className="relative mt-2">
+            <input
+              id={`${mode}-password`}
+              name="password"
+              type={
+                showPassword
+                  ? "text"
+                  : "password"
+              }
+              autoComplete={
+                isRegister
+                  ? "new-password"
+                  : "current-password"
+              }
+              required
+              minLength={
+                isRegister
+                  ? 12
+                  : 1
+              }
+              maxLength={128}
+              value={password}
+              onChange={(event) => {
+                setPassword(
+                  event.target.value,
+                );
+              }}
+              aria-describedby={
+                isRegister
+                  ? "password-requirements"
+                  : undefined
+              }
+              className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3.5 pr-20 text-base outline-none transition focus:border-neutral-950"
+            />
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowPassword(
+                  (current) => !current,
+                );
+              }}
+              className="absolute inset-y-0 right-4 text-xs font-semibold text-neutral-600 hover:text-neutral-950"
+              aria-label={
+                showPassword
+                  ? "Hide password"
+                  : "Show password"
+              }
+            >
+              {showPassword
+                ? "Hide"
+                : "Show"}
+            </button>
+          </div>
 
           {isRegister && (
-            <p className="mt-2 text-xs leading-5 text-neutral-500">
-              Use at least 12 characters.
+            <p
+              id="password-requirements"
+              className={`mt-2 text-xs leading-5 ${
+                password.length === 0
+                  ? "text-neutral-500"
+                  : passwordMeetsLength
+                    ? "text-emerald-700"
+                    : "text-red-700"
+              }`}
+            >
+              {password.length === 0
+                ? "Use at least 12 characters."
+                : passwordMeetsLength
+                  ? "Password length is valid."
+                  : "Use at least 12 characters."}
             </p>
           )}
         </div>
@@ -233,22 +296,75 @@ export default function AuthForm({
               Confirm password
             </label>
 
-            <input
-              id="register-confirm-password"
-              name="confirm-password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={12}
-              maxLength={128}
-              value={confirmPassword}
-              onChange={(event) => {
-                setConfirmPassword(
-                  event.target.value,
-                );
-              }}
-              className="mt-2 w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3.5 text-base outline-none transition focus:border-neutral-950"
-            />
+            <div className="relative mt-2">
+              <input
+                id="register-confirm-password"
+                name="confirm-password"
+                type={
+                  showConfirmPassword
+                    ? "text"
+                    : "password"
+                }
+                autoComplete="new-password"
+                required
+                minLength={12}
+                maxLength={128}
+                value={confirmPassword}
+                onChange={(event) => {
+                  setConfirmPassword(
+                    event.target.value,
+                  );
+                }}
+                aria-invalid={
+                  hasConfirmation &&
+                  !passwordsMatch
+                }
+                aria-describedby="confirm-password-status"
+                className={`w-full rounded-2xl border bg-white px-4 py-3.5 pr-20 text-base outline-none transition ${
+                  hasConfirmation &&
+                  !passwordsMatch
+                    ? "border-red-300 focus:border-red-600"
+                    : "border-neutral-300 focus:border-neutral-950"
+                }`}
+              />
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmPassword(
+                    (current) => !current,
+                  );
+                }}
+                className="absolute inset-y-0 right-4 text-xs font-semibold text-neutral-600 hover:text-neutral-950"
+                aria-label={
+                  showConfirmPassword
+                    ? "Hide confirmation password"
+                    : "Show confirmation password"
+                }
+              >
+                {showConfirmPassword
+                  ? "Hide"
+                  : "Show"}
+              </button>
+            </div>
+
+            <p
+              id="confirm-password-status"
+              aria-live="polite"
+              className={`mt-2 text-xs leading-5 ${
+                !hasConfirmation
+                  ? "text-neutral-500"
+                  : passwordsMatch
+                    ? "text-emerald-700"
+                    : "text-red-700"
+              }`}
+            >
+              {!hasConfirmation
+                ? "Re-enter your password."
+                : passwordsMatch
+                  ? "Passwords match."
+                  : "Passwords do not match."}
+            </p>
           </div>
         )}
 

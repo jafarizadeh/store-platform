@@ -27,7 +27,7 @@ from app.services.order_service import (
     create_pending_order,
 )
 
-ORDER_NUMBER_PATTERN = re.compile(r"^BY-\d{4}-\d{8}$")
+ORDER_NUMBER_PATTERN = re.compile(r"^BN-\d{6}-\d{4}$")
 
 TEST_CREDENTIAL_HASH = hash_password("order-audit-test-credential")
 
@@ -102,18 +102,18 @@ def test_new_order_gets_public_order_number(
 
     assert ORDER_NUMBER_PATTERN.fullmatch(order.order_number)
 
-    database_year = db_session.scalar(
+    database_date = db_session.scalar(
         select(
             func.to_char(
                 func.current_date(),
-                "YYYY",
+                "YYMMDD",
             )
         )
     )
 
-    assert database_year is not None
+    assert database_date is not None
 
-    assert order.order_number.startswith(f"BY-{database_year}-")
+    assert order.order_number.startswith(f"BN-{database_date}-")
 
 
 def test_order_numbers_are_unique(

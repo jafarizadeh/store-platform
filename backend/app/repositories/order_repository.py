@@ -2,10 +2,10 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import (
-    Sequence,
     func,
     select,
 )
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import (
     Session,
     selectinload,
@@ -18,28 +18,45 @@ from app.models.order import (
     Order,
     OrderItem,
 )
-
-ORDER_NUMBER_SEQUENCE = Sequence("order_number_seq")
+from app.models.order_number_sequence import (
+    OrderDailySequence,
+)
 
 
 def next_order_number(
     db: Session,
 ) -> str:
-    sequence_value = db.scalar(select(ORDER_NUMBER_SEQUENCE.next_value()))
+    current_date = db.scalar(select(func.current_date()))
 
-    year = db.scalar(
-        select(
-            func.to_char(
-                func.current_date(),
-                "YYYY",
-            )
+    if current_date is None:
+        raise RuntimeError("Could not resolve order date.")
+
+    statement = (
+        insert(OrderDailySequence)
+        .values(
+            order_date=current_date,
+            last_value=1,
         )
+        .on_conflict_do_update(
+            index_elements=[OrderDailySequence.order_date],
+            set_={
+                "last_value": OrderDailySequence.last_value + 1,
+            },
+        )
+        .returning(OrderDailySequence.last_value)
     )
 
-    if sequence_value is None or year is None:
+    sequence_value = db.scalar(statement)
+
+    if sequence_value is None:
         raise RuntimeError("Could not allocate order number.")
 
-    return f"BY-{year}-{sequence_value:08d}"
+    if sequence_value > 9999:
+        raise RuntimeError("Daily order number capacity exceeded.")
+
+    date_part = current_date.strftime("%y%m%d")
+
+    return f"BN-{date_part}-{sequence_value:04d}"
 
 
 def create_order(

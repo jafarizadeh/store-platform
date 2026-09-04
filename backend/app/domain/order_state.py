@@ -4,6 +4,9 @@ from enum import StrEnum
 class OrderStatus(StrEnum):
     PENDING = "pending"
     PAID = "paid"
+    PROCESSING = "processing"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
     REFUNDED = "refunded"
@@ -21,6 +24,26 @@ _ALLOWED_TRANSITIONS: dict[
         }
     ),
     OrderStatus.PAID: frozenset(
+        {
+            OrderStatus.PROCESSING,
+            OrderStatus.CANCELLED,
+            OrderStatus.REFUNDED,
+        }
+    ),
+    OrderStatus.PROCESSING: frozenset(
+        {
+            OrderStatus.SHIPPED,
+            OrderStatus.CANCELLED,
+            OrderStatus.REFUNDED,
+        }
+    ),
+    OrderStatus.SHIPPED: frozenset(
+        {
+            OrderStatus.DELIVERED,
+            OrderStatus.REFUNDED,
+        }
+    ),
+    OrderStatus.DELIVERED: frozenset(
         {
             OrderStatus.REFUNDED,
         }

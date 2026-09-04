@@ -115,7 +115,7 @@ def test_create_order_api_returns_server_calculated_total(
         order_number,
         str,
     )
-    assert order_number.startswith("BY-")
+    assert order_number.startswith("BN-")
 
     order = db_session.scalar(select(Order).where(Order.id == UUID(payload["id"])))
 

@@ -24,6 +24,7 @@ __all__ = [
     "Order",
     "OrderEvent",
     "OrderItem",
+    "OrderDailySequence",
     "Payment",
     "PaymentAttempt",
     "PaymentWebhookEvent",
@@ -33,3 +34,5 @@ __all__ = [
     "User",
     "UserSession",
 ]
+
+from app.models.order_number_sequence import OrderDailySequence

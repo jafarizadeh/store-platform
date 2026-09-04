@@ -13,7 +13,7 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const ORDER_NUMBER_PATTERN =
-  /^BY-\d{4}-\d{8}$/;
+  /^(?:BN-\d{6}-\d{4}|BY-\d{4}-\d{8})$/;
 
 function validFlow(
   value: unknown,

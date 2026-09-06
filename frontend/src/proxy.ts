@@ -22,8 +22,9 @@ function buildContentSecurityPolicy(
 
     [
       "style-src 'self'",
-      `'nonce-${nonce}'`,
-      isDevelopment ? "'unsafe-inline'" : "",
+      isDevelopment
+        ? "'unsafe-inline'"
+        : `'nonce-${nonce}'`,
     ]
       .filter(Boolean)
       .join(" "),

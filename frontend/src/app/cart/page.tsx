@@ -2,9 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import SiteHeader from "@/components/site-header";
 import { useCart } from "@/context/cart-context";
+import {
+  cartValidationErrorMessage,
+  type CartValidationItem,
+  validateCart,
+} from "@/lib/cart-client";
 import { formatMoney } from "@/lib/catalog";
 
 export default function CartPage() {
@@ -17,10 +27,163 @@ export default function CartPage() {
     decreaseItem,
     removeItem,
     clearCart,
+    reconcileSnapshots,
   } = useCart();
+
+  const [
+    validationItems,
+    setValidationItems,
+  ] = useState<CartValidationItem[]>([]);
+
+  const [
+    mixedCurrency,
+    setMixedCurrency,
+  ] = useState(false);
+
+  const [
+    validationError,
+    setValidationError,
+  ] = useState<string | null>(null);
+
+  const [
+    isValidating,
+    setIsValidating,
+  ] = useState(false);
 
   const displayCurrency =
     currency ?? "EUR";
+
+  const validationByOfferId =
+    useMemo(
+      () =>
+        new Map(
+          validationItems.map(
+            (item) => [
+              item.offer_id,
+              item,
+            ],
+          ),
+        ),
+      [validationItems],
+    );
+
+  const hasValidationIssue =
+    mixedCurrency ||
+    validationItems.some(
+      (item) => item.issue !== null,
+    );
+
+  const checkoutBlocked =
+    isValidating ||
+    validationError !== null ||
+    hasValidationIssue;
+
+  useEffect(() => {
+    if (items.length === 0) {
+      return;
+    }
+
+    const controller =
+      new AbortController();
+
+    const timeout = window.setTimeout(
+      async () => {
+        setIsValidating(true);
+        setValidationError(null);
+
+        try {
+          const result =
+            await validateCart(
+              items.map((item) => ({
+                offer_id: item.offerId,
+                quantity: item.quantity,
+              })),
+            );
+
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          setValidationItems(result.items);
+          setMixedCurrency(
+            result.mixed_currency,
+          );
+
+          reconcileSnapshots(
+            result.items.flatMap(
+              (item) => {
+                if (
+                  item.product_slug === null ||
+                  item.product_name === null ||
+                  item.offer_name === null ||
+                  item.sku === null ||
+                  item.unit_price_cents === null ||
+                  item.currency === null ||
+                  item.image_path === null ||
+                  (
+                    item.fulfillment_type !==
+                      "physical" &&
+                    item.fulfillment_type !==
+                      "digital" &&
+                    item.fulfillment_type !==
+                      "service"
+                  )
+                ) {
+                  return [];
+                }
+
+                return [{
+                  offerId: item.offer_id,
+                  productSlug:
+                    item.product_slug,
+                  productName:
+                    item.product_name,
+                  offerName:
+                    item.offer_name,
+                  sku: item.sku,
+                  priceCents:
+                    item.unit_price_cents,
+                  currency: item.currency,
+                  image: item.image_path,
+                  fulfillmentType:
+                    item.fulfillment_type,
+                  maxQuantity:
+                    item.max_quantity,
+                }];
+              },
+            ),
+          );
+        } catch (error) {
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          setValidationItems([]);
+          setMixedCurrency(false);
+          setValidationError(
+            cartValidationErrorMessage(
+              error,
+            ),
+          );
+        } finally {
+          if (
+            !controller.signal.aborted
+          ) {
+            setIsValidating(false);
+          }
+        }
+      },
+      250,
+    );
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [
+    items,
+    reconcileSnapshots,
+  ]);
 
   return (
     <main className="min-h-screen bg-white text-neutral-950">
@@ -49,7 +212,28 @@ export default function CartPage() {
             </Link>
           </div>
         ) : (
-          <div className="mt-14 grid gap-12 lg:grid-cols-[1fr_360px]">
+          <>
+            <div className="mt-8 space-y-3">
+              {isValidating && (
+                <p className="text-sm text-neutral-500">
+                  Checking price and availability…
+                </p>
+              )}
+
+              {validationError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+                  {validationError}
+                </div>
+              )}
+
+              {mixedCurrency && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+                  Cart items must use the same currency.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 grid gap-12 lg:grid-cols-[1fr_360px]">
             <div className="divide-y divide-neutral-200 border-y border-neutral-200">
               {items.map((item) => (
                 <article
@@ -97,6 +281,37 @@ export default function CartPage() {
                         )}{" "}
                         each
                       </p>
+
+                      {(() => {
+                        const validation =
+                          validationByOfferId.get(
+                            item.offerId,
+                          );
+
+                        if (!validation?.issue) {
+                          return null;
+                        }
+
+                        const message =
+                          validation.issue ===
+                          "offer_unavailable"
+                            ? "This item is no longer available."
+                            : validation.issue ===
+                              "quote_required"
+                            ? "This item now requires a quote."
+                            : validation.issue ===
+                              "quantity_limit_exceeded"
+                            ? "Maximum quantity is 100."
+                            : `Only ${
+                                validation.available_quantity ?? 0
+                              } currently available.`;
+
+                        return (
+                          <p className="mt-3 text-sm font-medium text-red-700">
+                            {message}
+                          </p>
+                        );
+                      })()}
 
                       <button
                         type="button"
@@ -212,12 +427,24 @@ export default function CartPage() {
                 </span>
               </div>
 
-              <Link
-                href="/checkout"
-                className="mt-8 block w-full rounded-full bg-white px-6 py-4 text-center text-sm font-semibold text-neutral-950 transition hover:bg-neutral-200"
-              >
-                Checkout
-              </Link>
+              {checkoutBlocked ? (
+                <button
+                  type="button"
+                  disabled
+                  className="mt-8 block w-full cursor-not-allowed rounded-full bg-neutral-700 px-6 py-4 text-center text-sm font-semibold text-neutral-400"
+                >
+                  {isValidating
+                    ? "Checking cart…"
+                    : "Review cart"}
+                </button>
+              ) : (
+                <Link
+                  href="/checkout"
+                  className="mt-8 block w-full rounded-full bg-white px-6 py-4 text-center text-sm font-semibold text-neutral-950 transition hover:bg-neutral-200"
+                >
+                  Checkout
+                </Link>
+              )}
 
               <button
                 type="button"
@@ -228,6 +455,7 @@ export default function CartPage() {
               </button>
             </aside>
           </div>
+          </>
         )}
       </section>
     </main>

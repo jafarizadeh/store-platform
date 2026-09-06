@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -35,6 +36,22 @@ export type CartAddIssue =
   | "quantity-limit"
   | null;
 
+export type CartSnapshotUpdate = {
+  offerId: number;
+  productSlug: string;
+  productName: string;
+  offerName: string;
+  sku: string;
+  priceCents: number;
+  currency: string;
+  image: string;
+  fulfillmentType:
+    | "physical"
+    | "digital"
+    | "service";
+  maxQuantity: number | null;
+};
+
 type CartContextType = {
   items: CartItem[];
   totalItems: number;
@@ -53,6 +70,9 @@ type CartContextType = {
     offerId: number,
   ) => void;
   clearCart: () => void;
+  reconcileSnapshots: (
+    updates: CartSnapshotUpdate[],
+  ) => void;
 };
 
 const MAX_ORDER_QUANTITY_PER_OFFER = 100;
@@ -317,6 +337,72 @@ export function CartProvider({
     setItems([]);
   }
 
+  const reconcileSnapshots =
+    useCallback((
+      updates: CartSnapshotUpdate[],
+    ) => {
+    const updatesByOfferId =
+      new Map(
+        updates.map(
+          (update) => [
+            update.offerId,
+            update,
+          ],
+        ),
+      );
+
+    setItems((current) => {
+      let changed = false;
+
+      const next = current.map(
+        (item) => {
+          const update =
+            updatesByOfferId.get(
+              item.offerId,
+            );
+
+          if (!update) {
+            return item;
+          }
+
+          const replacement = {
+            ...item,
+            ...update,
+          };
+
+          if (
+            item.productSlug
+              !== replacement.productSlug
+            || item.productName
+              !== replacement.productName
+            || item.offerName
+              !== replacement.offerName
+            || item.sku
+              !== replacement.sku
+            || item.priceCents
+              !== replacement.priceCents
+            || item.currency
+              !== replacement.currency
+            || item.image
+              !== replacement.image
+            || item.fulfillmentType
+              !== replacement.fulfillmentType
+            || item.maxQuantity
+              !== replacement.maxQuantity
+          ) {
+            changed = true;
+          }
+
+          return replacement;
+        },
+      );
+
+      return changed
+        ? next
+        : current;
+    });
+  }, []);
+
   const totalItems =
     visibleItems.reduce(
       (total, item) =>
@@ -345,6 +431,7 @@ export function CartProvider({
         decreaseItem,
         removeItem,
         clearCart,
+        reconcileSnapshots,
       }}
     >
       {children}
